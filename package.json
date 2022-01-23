@@ -1,0 +1,21 @@
+{
+  "name": "kefvoiced",
+  "version": "1.0.0",
+  "description": "A TTS Bot",
+  "main": "index.js",
+  "dependencies": {
+    "discord-api-types": "^0.26.1",
+    "discord.js": "^13.6.0",
+    "node": "^17.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "!ping"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/ashauntis/kefvoiced"
+  },
+  "author": "Kayla Gray",
+  "license": "ISC"
+}
