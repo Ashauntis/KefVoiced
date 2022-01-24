@@ -8,7 +8,9 @@
     "discord.js": "^13.6.0",
     "node": "^17.4.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^8.7.0"
+  },
   "scripts": {
     "test": "!ping"
   },
