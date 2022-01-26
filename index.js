@@ -10,6 +10,34 @@ client.once('ready', () => {
 	console.log('Ready!');
 });
 
+client.on('interactionCreate', async interaction => {
+	if (!interaction.isCommand()) return;
+
+	const { commandName } = interaction;
+
+	if (commandName === 'ping') {
+		await interaction.reply('Pong!');
+	} else if (commandName === 'server') {
+		await interaction.reply('Server info.');
+	} else if (commandName === 'user') {
+		await interaction.reply('User info.');
+	// } else if (commandName === 'join') {
+	// 	const channel = message.member?.voice.channel;
+
+	// 	if (channel) {
+	// 		try {
+	// 			const connection = await connectToChannel(channel);
+	// 			connection.subscribe(client);
+	// 			message.reply('Joining voice!');
+	// 		} catch (error) {
+	// 			console.error(error);
+	// 		}
+	// 	} else {
+	// 		message.reply('Join a voice channel then try again!');
+	// 	}
+	}
+});
+
 // Login to Discord with your client's token
 client.login(process.env.token);
 
