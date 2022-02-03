@@ -5,13 +5,13 @@ require('dotenv').config();
 const clientId = process.env.clientId;
 const guildId = process.env.guildId;
 const token = process.env.token;
-console.log(token);
 
 const commands = [
 	new SlashCommandBuilder().setName('ping').setDescription('Replies with pong!'),
 	new SlashCommandBuilder().setName('server').setDescription('Replies with server info!'),
 	new SlashCommandBuilder().setName('user').setDescription('Replies with user info!'),
 	new SlashCommandBuilder().setName('join').setDescription('Join\'s your current voice channel.'),
+	new SlashCommandBuilder().setName('leave').setDescription('Leaves voice chat'),
 ]
 	.map(command => command.toJSON());
 
