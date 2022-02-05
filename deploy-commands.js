@@ -12,6 +12,7 @@ const commands = [
 	new SlashCommandBuilder().setName('user').setDescription('Replies with user info!'),
 	new SlashCommandBuilder().setName('join').setDescription('Join\'s your current voice channel.'),
 	new SlashCommandBuilder().setName('leave').setDescription('Leaves voice chat'),
+	new SlashCommandBuilder().setName('perfect').setDescription('Street fighter : perfect'),
 ]
 	.map(command => command.toJSON());
 
