@@ -145,7 +145,7 @@ client.on('messageCreate', async message => {
 			OutputFormat: 'ogg_vorbis',
 			Text: message.content,
 			VoiceId: 'Salli',
-			SampleRate: '8000',
+			SampleRate: '24000',
 		};
 		polly.synthesizeSpeech(params, function(err, data) {
 			if (connection !== null) {
@@ -155,7 +155,10 @@ client.on('messageCreate', async message => {
 						console.log(err);
 						return;
 					}
-					const audioFileHandle = createAudioResource(join(__dirname, audioFile));
+					// const audioFileHandle = createAudioResource(join(__dirname, audioFile));
+					const audioFileHandle = createAudioResource(fs.createReadStream(join(__dirname, audioFile), {
+						inputType: StreamType.OggOpus,
+					}));
 					connection = getVoiceConnection(channel.guild.id);
 					player.play(audioFileHandle);
 					entersState(player, AudioPlayerStatus.Playing, 5_000);
