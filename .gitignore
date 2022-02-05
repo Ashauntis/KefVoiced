@@ -1,3 +1,5 @@
 node_modules/
 token.json
 .env
+.mp3
+.ogg
