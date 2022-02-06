@@ -1,4 +1,6 @@
+// Copyright (C) 2022 by Kayla Grey
 // Require the necessary discord.js classes
+
 require('dotenv').config();
 
 const fs = require('fs');
@@ -23,6 +25,9 @@ const {
     Client,
     Intents,
 } = require('discord.js');
+
+
+
 
 // bring in the discord.js voice/audio classes
 const {
@@ -50,9 +55,10 @@ let connection = null;
 let channel = null;
 const player = createAudioPlayer();
 
-
-// never use tabs to indent. fuck tabs I want you to know the linter requires tabs and not spaces. Please enjoy that fact.
-// requires? i'd be fucking shocked enjoy.
+let queue = {
+    playing: false,
+    advance: false,
+};
 
 //  _____       _                       _
 // |  __ \     | |                     (_)
@@ -63,13 +69,19 @@ const player = createAudioPlayer();
 //                           __/ | __/ |         __/ |
 //                          |___/ |___/         |___/
 
-// player.on(AudioPlayerStatus.Playing, (oldState, newState) => {
-// 	console.log('Audio player is in the Playing state!');
-// });
+player.on(AudioPlayerStatus.Playing, (oldState, newState) => {
+    queue.playing = true;
+	console.log('Audio player is in the Playing state!');
+});
 
-// player.on('stateChange', (oldState, newState) => {
-// 	console.log(`Audio player transitioned from ${oldState.status} to ${newState.status}`);
-// });
+player.on('stateChange', (oldState, newState) => {
+	console.log(`Audio player transitioned from ${oldState.status} to ${newState.status}`);
+    if (oldState.status == AudioPlayerStatus.Playing && newState.status != AudioPlayerStatus.Playing) {
+        console.log('Audio player has left the the Playing state!');
+        queue.playing = false;
+        queue.advance = true;
+    }
+});
 
 
 // When the client is ready, run this code (only once)
@@ -148,6 +160,13 @@ client.on('interactionCreate', async interaction => {
             }
             break;
 
+		case 'leave':
+			if (connection) {
+				response = 'Goodbye!';
+				connection.destroy();
+			}
+			break;
+
         default:
             response = 'Command not currently supported';
             break;
@@ -159,7 +178,22 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
+//  _______ _______ _____                _   _
+// |__   __|__   __/ ____|     /\       | | (_)
+//    | |     | | | (___      /  \   ___| |_ _  ___  _ __
+//    | |     | |  \___ \    / /\ \ / __| __| |/ _ \| '_ \
+//    | |     | |  ____) |  / ____ \ (__| |_| | (_) | | | |
+//    |_|     |_| |_____/  /_/    \_\___|\__|_|\___/|_| |_|
+// Let's create a queue!
+
+let voiceQueue = [];
+
 client.on('messageCreate', async message => {
+    if (message.content.search('http') != -1) {
+        console.log(message.content.search('http'));
+        message.content = 'A link';
+    }
+
     if (VoiceConnectionStatus.Ready) {
         // console.log(message);
         const params = {
@@ -170,29 +204,58 @@ client.on('messageCreate', async message => {
         };
         polly.synthesizeSpeech(params, function(err, data) {
             if (connection !== null) {
-                const audioFile = 'todo.ogg';
+                const audioFile = 'audio/' + message.id + '.ogg';
                 fs.writeFile(audioFile, data.AudioStream, err => {
                     if (err) {
                         console.log(err);
                         return;
-                    }
-                    const audioFileHandle = createAudioResource(fs.createReadStream(join(__dirname, audioFile), {
-                        inputType: StreamType.OggOpus,
-                    }));
-                    connection = getVoiceConnection(message.guildId);
-                    player.play(audioFileHandle);
-                    entersState(player, AudioPlayerStatus.Playing, 5_000);
+                    } else {
+                    voiceQueue.push({
+                        id: message.guildId,
+                        path: audioFile,
+                    });
+                }
+                    // player.play(audioFileHandle);
+                    // connection = getVoiceConnection(message.guildId);
+                    // entersState(player, AudioPlayerStatus.Playing, 5_000);
                 });
             } else if (err) {
                 console.log(err, err.stack);
             } else {
-                console.log('There\'s a problem here...');
+                console.log('Something broke.');
             }
         });
     } else {
-        console.log('There\'s an issue here...');
+        console.log('Voice connection has not been established yet...');
     }
 });
+
+function playQueue() {
+    if (queue.playing) {
+        // console.log('playQueue: Audio is playing! Ignoring request to play queue.');
+    } else if (voiceQueue.length == 0) {
+        // console.log('playQueue: Queue is empty!');
+    } else if (queue.advance) {
+        console.log('playQueue: Advancing the queue!');
+        queue.advance = false;
+        try {
+            fs.unlinkSync(voiceQueue[0].path);
+        } catch (err) {
+            console.error(err);
+        }
+        voiceQueue.shift();
+    } else {
+        console.log('playQueue: Time to play some audio!');
+        queue.playing = true;
+        connection = getVoiceConnection(voiceQueue[0].id);
+        const audioFileHandle = createAudioResource(fs.createReadStream(join(__dirname, voiceQueue[0].path), {
+            inputType: StreamType.OggOpus,
+        }));
+        player.play(audioFileHandle);
+    }
+}
+
+setInterval(playQueue, 1);
 
 // Login to Discord with your client's token
 client.login(process.env.token);
