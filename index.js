@@ -1,4 +1,4 @@
-// Copyright (C) 2022 by Kayla Grey
+// Copyright (C) 2022 by Kayla Grey + Jared De Blander
 // Require the necessary discord.js classes
 
 require('dotenv').config();
