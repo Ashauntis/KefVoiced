@@ -26,9 +26,6 @@ const {
     Intents,
 } = require('discord.js');
 
-
-
-
 // bring in the discord.js voice/audio classes
 const {
     AudioPlayer,
@@ -55,6 +52,7 @@ let connection = null;
 let channel = null;
 const player = createAudioPlayer();
 
+let lastSpeaker = null;
 let queue = {
     playing: false,
     advance: false,
@@ -71,13 +69,13 @@ let queue = {
 
 player.on(AudioPlayerStatus.Playing, (oldState, newState) => {
     queue.playing = true;
-	console.log('Audio player is in the Playing state!');
+	// console.log('Audio player is in the Playing state!');
 });
 
 player.on('stateChange', (oldState, newState) => {
-	console.log(`Audio player transitioned from ${oldState.status} to ${newState.status}`);
+	// console.log(`Audio player transitioned from ${oldState.status} to ${newState.status}`);
     if (oldState.status == AudioPlayerStatus.Playing && newState.status != AudioPlayerStatus.Playing) {
-        console.log('Audio player has left the the Playing state!');
+        // console.log('Audio player has left the the Playing state!');
         queue.playing = false;
         queue.advance = true;
     }
@@ -107,69 +105,70 @@ client.on('interactionCreate', async interaction => {
 
         switch (commandName) {
 
-        case 'perfect':
-            response = 'perfect!';
-            if (connection !== null) {
-                const resource = createAudioResource(join(__dirname, 'perfect.mp3'));
-                connection = getVoiceConnection(channel.guild.id);
-                player.play(resource);
-                await entersState(player, AudioPlayerStatus.Playing, 5_000);
-            }
-            break;
+            case 'join':
+                response = 'Request to join voice received';
+                if (channel) {
+                    response += ' - Valid channel';
+                    try {
+                        connection = await joinVoiceChannel({
+                            channelId: channel.id,
+                            guildId: channel.guild.id,
+                            adapterCreator: channel.guild.voiceAdapterCreator,
+                        });
 
-        case 'ping':
-            response = 'Pong!';
-            if (connection !== null) {
-                const resource = createAudioResource(join(__dirname, 'buttchugs.mp3'));
-                connection = getVoiceConnection(channel.guild.id);
-                player.play(resource);
-                await entersState(player, AudioPlayerStatus.Playing, 5_000);
-            }
-            break;
+                        connection.on('stateChange', (oldState, newState) => {
+                            // console.log(`Connection transitioned from ${oldState.status} to ${newState.status}`);
+                        });
 
-        case 'join':
-            response = 'Request to join voice received';
+                        connection.on(VoiceConnectionStatus.Ready, () => {
+                            // console.log('The connection has entered the Ready state - ready to play audio!');
+                        });
 
-            if (channel) {
-                response += ' - Valid channel';
-                try {
-                    connection = await joinVoiceChannel({
-                        channelId: channel.id,
-                        guildId: channel.guild.id,
-                        adapterCreator: channel.guild.voiceAdapterCreator,
-                    });
+                        connection.subscribe(player);
 
-                    connection.on('stateChange', (oldState, newState) => {
-                        console.log(`Connection transitioned from ${oldState.status} to ${newState.status}`);
-                    });
-
-                    connection.on(VoiceConnectionStatus.Ready, () => {
-                        console.log('The connection has entered the Ready state - ready to play audio!');
-                    });
-
-                    connection.subscribe(player);
-
-                    response += ' - Joining voice!';
-                } catch (error) {
-                    response = error.message;
-                    console.error(error);
+                        response += ' - Joining voice!';
+                    } catch (error) {
+                        response = error.message;
+                        console.error(error);
+                    }
+                    response = 'Yo!';
+                } else {
+                    response = 'Join a voice channel and then try again!';
                 }
-                response = 'Yo!';
-            } else {
-                response = 'Join a voice channel and then try again!';
-            }
-            break;
+                break;
 
-		case 'leave':
-			if (connection) {
-				response = 'Goodbye!';
-				connection.destroy();
-			}
-			break;
+            case 'leave':
+                if (connection) {
+                    response = 'Goodbye!';
+                    connection.destroy();
+                } else {
+                    response = 'Not currently connected to voice.';
+                }
+                break;
 
-        default:
-            response = 'Command not currently supported';
-            break;
+            case 'perfect':
+                response = 'perfect!';
+                if (connection !== null) {
+                    const resource = createAudioResource(join(__dirname, 'perfect.mp3'));
+                    connection = getVoiceConnection(channel.guild.id);
+                    player.play(resource);
+                    await entersState(player, AudioPlayerStatus.Playing, 5_000);
+                }
+                break;
+
+            case 'ping':
+                response = 'Pong!';
+                if (connection !== null) {
+                    const resource = createAudioResource(join(__dirname, 'buttchugs.mp3'));
+                    connection = getVoiceConnection(channel.guild.id);
+                    player.play(resource);
+                    await entersState(player, AudioPlayerStatus.Playing, 5_000);
+                }
+                break;
+
+            default:
+                response = 'Command not currently supported';
+                break;
         }
 
         if (response !== '') {
@@ -189,19 +188,35 @@ client.on('interactionCreate', async interaction => {
 let voiceQueue = [];
 
 client.on('messageCreate', async message => {
-    if (message.content.search('http') != -1) {
-        console.log(message.content.search('http'));
-        message.content = 'A link';
+
+    let author = message.member.nickname;
+    if (author === null) {
+        author = message.author.username;
+    }
+
+    if (lastSpeaker !== author) {
+        message.content = author + ' said ' + message.content;
+        lastSpeaker = author;
     }
 
     if (VoiceConnectionStatus.Ready) {
-        // console.log(message);
+        console.log(author + ' said ' + message.content);
         const params = {
             OutputFormat: 'ogg_vorbis',
             Text: message.content,
             VoiceId: 'Salli',
             SampleRate: '24000',
         };
+
+        if (message.content.search('http') != -1) {
+            console.log(message.content.search('http'));
+            message.content = 'A link';
+        }
+
+        if (message.content.search('')) {
+            // remove emoji's from string with regex;
+        }
+
         polly.synthesizeSpeech(params, function(err, data) {
             if (connection !== null) {
                 const audioFile = 'audio/' + message.id + '.ogg';
@@ -213,16 +228,14 @@ client.on('messageCreate', async message => {
                     voiceQueue.push({
                         id: message.guildId,
                         path: audioFile,
+                        message: message.content,
                     });
                 }
-                    // player.play(audioFileHandle);
-                    // connection = getVoiceConnection(message.guildId);
-                    // entersState(player, AudioPlayerStatus.Playing, 5_000);
                 });
             } else if (err) {
                 console.log(err, err.stack);
             } else {
-                console.log('Something broke.');
+                console.log('Something broke - Failed attempt to send request to AWS');
             }
         });
     } else {
@@ -236,7 +249,7 @@ function playQueue() {
     } else if (voiceQueue.length == 0) {
         // console.log('playQueue: Queue is empty!');
     } else if (queue.advance) {
-        console.log('playQueue: Advancing the queue!');
+        // console.log('playQueue: Advancing the queue!');
         queue.advance = false;
         try {
             fs.unlinkSync(voiceQueue[0].path);
@@ -245,7 +258,7 @@ function playQueue() {
         }
         voiceQueue.shift();
     } else {
-        console.log('playQueue: Time to play some audio!');
+        console.log('playQueue: Playing ' + voiceQueue[0].message);
         queue.playing = true;
         connection = getVoiceConnection(voiceQueue[0].id);
         const audioFileHandle = createAudioResource(fs.createReadStream(join(__dirname, voiceQueue[0].path), {
