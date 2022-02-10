@@ -116,6 +116,8 @@ client.on('interactionCreate', async interaction => {
                             adapterCreator: channel.guild.voiceAdapterCreator,
                         });
 
+                        console.log(activeConnections[idx].connection._state);
+
                         activeConnections[idx].channelId = channel.id;
                         activeConnections[idx].guildId = channel.guild.id;
 
@@ -143,14 +145,10 @@ client.on('interactionCreate', async interaction => {
             case 'leave':
                 if (activeConnections.length > 0) {
                     for (let i = 0; i < activeConnections.length; i++) {
-                        // console.log('searching for connection');
-                        // console.log(interaction.member);
-                        // console.log('break');
-                        // console.log(activeConnections);
-                        console.log(activeConnections[i].connection);
                         if (activeConnections[i].guildId === interaction.member.guild.id) {
                             response = 'Goodbye!';
                             activeConnections[i].connection.destroy();
+                            activeConnections.splice(i, 1);
                             return;
                         } else {
                             response = 'Not currently connected to voice.';
@@ -159,13 +157,6 @@ client.on('interactionCreate', async interaction => {
                 } else {
                     response = 'Not currently connected to voice.';
                 }
-
-                // if (connection) {
-                //     response = 'Goodbye!';
-                //     connection.destroy();
-                // } else {
-                //     response = 'Not currently connected to voice.';
-                // }
                 break;
 
             // case 'perfect':
