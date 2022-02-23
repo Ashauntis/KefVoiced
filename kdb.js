@@ -11,18 +11,16 @@ dotenv.config();
 class kdb {
     constructor() {
         // login to Amazon DynamoDB
-        console.log(aws.config);
-        console.log(aws.Config);
-        console.log('Connecting to Amazon DynamoDB...');
-        aws.config.getCredentials(function(err) {
-            if (err) {
-                console.log(err.stack);
-            } else {
-                console.log('Successfully logged into AWS');
-            }
-        });
-        this.dynamo = new aws.DynamoDB ({ apiVersion: '2012-08-10', region: 'us-east-1' });
-        console.log('Connected to Amazon DynamoDB');
+        // console.log('Connecting to Amazon DynamoDB...');
+        // aws.config.getCredentials(function(err) {
+        //     if (err) {
+        //         console.log(err.stack);
+        //     } else {
+        //         console.log('Successfully logged into AWS');
+        //     }
+        // });
+        // this.dynamo = new aws.DynamoDB ({ apiVersion: '2012-08-10', region: 'us-east-1' });
+        // console.log('Connected to Amazon DynamoDB');
         // console.dir(this.dynamo);
     }
 
@@ -110,12 +108,12 @@ class kdb {
         return final_id;
     }
 
-    create_user_setting() {
-        this.save_document({voice: 'default'}, 'user_settings');
+    create_user_setting(voiceInput, userid) {
+        save_document({voice: voiceInput}, userid);
     }
 
-    create_guild_setting(voiceInput, channelInput) {
-        this.save_document({ voice: voiceInput, channel: channelInput }, 'guild_settings');
+    create_guild_setting(voiceInput, channelInput, userid) {
+        save_document({ voice: voiceInput, channel: channelInput }, userid);
     }
 }
 
