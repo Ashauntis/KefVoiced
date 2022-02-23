@@ -3,6 +3,16 @@
 // load environment variables if they are present
 require('dotenv').config();
 
+function makeDefaultSettings(userID) {
+    return {
+        [userID]: {
+            global: {
+                voice: "Salli"
+            }
+        }
+    };
+}
+
 // load dependencies
 const fs = require('fs');
 const { join } = require('path');
@@ -20,11 +30,15 @@ const {
     StreamType,
     VoiceConnectionStatus,
 } = require('@discordjs/voice');
+const { SlashCommandRoleOption } = require('@discordjs/builders');
 
 // extend the String class to add a replace method
 String.prototype.replaceAt = function(index, replacement) {
     return this.substr(0, index) + replacement + this.substr(index + replacement.length);
 };
+String.prototype.capitalize = function() {
+    return this.charAt(0).toUpperCase() + this.slice(1);
+}
 
 // define our connection class
 class VoiceConnection {
@@ -74,7 +88,7 @@ const dynamo = new aws.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' 
 
 function list_tables() {
     const params = {};
-    this.dynamo.listTables(params, function(err, data) {
+    dynamo.listTables(params, function(err, data) {
         if (err) {
             console.log(err, err.stack);
         } else {
@@ -83,7 +97,7 @@ function list_tables() {
     });
 }
 
-function load_document(id) {
+async function load_document(id) {
     // set result_data to null to start
     let result_data = null;
 
@@ -95,20 +109,35 @@ function load_document(id) {
         },
     };
 
+    console.log("Loading document with id: " + id);
     // get the document from Amazon DynamoDB
-    this.dynamo.getItem(params, function(err, data) {
+    const r = await dynamo.getItem(params, function(err, data) {
+        console.log("callback for document with id: " + id);
         if (err) {
             console.log(err, err.stack);
+        } else if (Object.keys(data).length == 0) {
+            console.log("No document found with id: " + id);
         } else {
+            console.dir(data);
             result_data = JSON.parse(data.Item.value.S);
-            console.dir(result_data);
         }
-    });
+    }).promise();
 
+    console.log("Finished loading document with id: " + id);
+
+    if (result_data == null) {
+        console.log("No document found. Big sad. ID was: " + id);
+    } else {
+        console.log("A document was found");
+        console.log(`result_data = `);
+        console.dir(result_data);
+        console.log(`r =  `);
+        console.dir(r);
+    }
     return result_data;
 }
 
-function save_document(data_object, id) {
+async function save_document(data_object, id) {
 
     // create a new document from a stringified object
     const value = JSON.stringify(data_object);
@@ -119,18 +148,19 @@ function save_document(data_object, id) {
         Item: {
             id: { S: id },
             value: { S: value },
-            timestamp: { S: new Date().getTime() },
         },
     };
 
     // store the document in Amazon DynamoDB
-    this.dynamo.putItem(params, function(err) {
+    const r = await dynamo.putItem(params, function(err) {
         if (err) {
             console.log('Error', err, err.stack);
         } else {
             console.log('Successfully added!');
         }
-    });
+    }).promise();
+
+    return r;
 }
 
 function create_user_setting(voiceInput, userid) {
@@ -140,6 +170,9 @@ function create_user_setting(voiceInput, userid) {
 function create_guild_setting(voiceInput, channelInput, userid) {
     save_document({ voice: voiceInput, channel: channelInput }, userid);
 }
+
+let cached_user_data = [];
+let cached_guild_data = [];
 
 // Create a new client instance
 const client = new Client({ intents: [
@@ -168,13 +201,20 @@ client.on('interactionCreate', async interaction => {
     if (interaction.isCommand()) {
 
         const { commandName } = interaction;
+        const userID = interaction.member.id;
+        const guildID = interaction.member.guildID;
         let response = '';
+        let choice = null;
+        let validChoice = null;
+        let cached = false;
+        let newSetting = null;
 
         const channel = interaction.member?.voice.channel;
 
         switch (commandName) {
 
             case 'join':
+
                 response = 'Request to join voice received';
                 if (channel) {
                     try {
@@ -213,6 +253,7 @@ client.on('interactionCreate', async interaction => {
                 break;
 
             case 'leave':
+
                 if (activeConnections.length > 0) {
                     for (let i = 0; i < activeConnections.length; i++) {
                         if (activeConnections[i].guildId === interaction.member.guild.id) {
@@ -230,6 +271,7 @@ client.on('interactionCreate', async interaction => {
                 break;
 
             case 'listvoices':
+
                 polly.describeVoices({ LanguageCode: "en-US" }, function(err, data) {
                     if (err) {
                         console.log(err, err.stack);
@@ -237,15 +279,63 @@ client.on('interactionCreate', async interaction => {
                         response = 'The currently supported voices include ';
                         for (let i = 0; i < data.Voices.length; i++) {
                             if (i != data.Voices.length - 1) {
-                                response += data.Voices[i].Name + '(' + data.Voices[i].Gender + '), ';
+                                response += data.Voices[i].Name + ' (' + data.Voices[i].Gender + '), ';
                             } else {
-                                response += data.Voices[i].Name + '(' + data.Voices[i].Gender + '). ';
+                                response += data.Voices[i].Name + ' (' + data.Voices[i].Gender + '). ';
                             }
                         }
                         interaction.reply(response);
                     }
                 });
                 break;
+
+            case 'setvoice':
+
+                choice = interaction.options.getString('input').capitalize();
+                console.log('Choice input was ' + choice)
+                polly.describeVoices({ LanguageCode: "en-US" }, function(err, data) {
+                    if (err) {
+                        console.log(err, err.stack);
+                    } else {
+                        validChoice = false;
+                        for (let i = 0; i < data.Voices.length; i++) {
+                            if (data.Voices[i].Name === choice) {
+                                validChoice = true;
+                                console.log('Choice was valid');
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                if (!validChoice) {
+
+                    const query = await load_document(userID);
+                    if (query) {
+                        query.global.voice = choice;
+                        newSetting = {
+                            userID: query
+                        }
+                        for (let i = 0; i < cached_user_data.length; i++) {
+                            if (cached_user_data[i].hasOwnProperty(userID)) {
+                                cached = true;
+                                cached_user_data.splice(i, 1, newSetting);
+                                save_document(query, userID);
+                                break;
+                            }
+                        }
+                        if (!cached) {
+                            cached_user_data.push(newSetting);
+                        }
+                    } else {
+                        newSetting = makeDefaultSettings(userID);
+                        cached_user_data.push(newSetting);
+                        console.log(newSetting);
+                        save_document(newSetting.userID.global, userID);
+                    }
+                }
+                break;
+
 
             default:
                 response = 'Command not currently supported';
@@ -360,3 +450,5 @@ function playQueue() {
         }
     }
 }
+
+// save_document({text: 'ecks dee'}, 'xD');
