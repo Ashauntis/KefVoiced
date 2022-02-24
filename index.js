@@ -3,16 +3,6 @@
 // load environment variables if they are present
 require("dotenv").config();
 
-function makeDefaultSettings(userID) {
-  return {
-    [userID]: {
-      global: {
-        voice: "Salli",
-      },
-    },
-  };
-}
-
 // load dependencies
 const fs = require("fs");
 const { join } = require("path");
@@ -33,14 +23,14 @@ const {
 const { SlashCommandRoleOption } = require("@discordjs/builders");
 
 // extend the String class to add a replace method
-String.prototype.replaceAt = function (index, replacement) {
+String.prototype.replaceAt = function(index, replacement) {
   return (
     this.substr(0, index) +
     replacement +
     this.substr(index + replacement.length)
   );
 };
-String.prototype.capitalize = function () {
+String.prototype.capitalize = function() {
   return this.charAt(0).toUpperCase() + this.slice(1);
 };
 
@@ -78,7 +68,7 @@ class VoiceConnection {
 }
 
 // log into AWS Services
-aws.config.getCredentials(function (err) {
+aws.config.getCredentials(function(err) {
   if (err) {
     console.log(err.stack);
   } else {
@@ -95,9 +85,26 @@ const dynamo = new aws.DynamoDB({
 
 // defining database utility functions
 
+function makeDefaultSettings(userID) {
+    return {
+      [userID]: {
+        global: {
+          voice: "Salli",
+        },
+      },
+    };
+  }
+
+function makeEmptyCacheEntry(userID) {
+    return {
+        [userID]: {
+        },
+    };
+}
+
 function list_tables() {
   const params = {};
-  dynamo.listTables(params, function (err, data) {
+  dynamo.listTables(params, function(err, data) {
     if (err) {
       console.log(err, err.stack);
     } else {
@@ -120,8 +127,7 @@ async function load_document(id) {
 
   console.log("Loading document with id: " + id);
   // get the document from Amazon DynamoDB
-  const r = await dynamo
-    .getItem(params, function (err, data) {
+  await dynamo.getItem(params, function (err, data) {
       console.log("callback for document with id: " + id);
       if (err) {
         console.log(err, err.stack);
@@ -236,20 +242,20 @@ client.on("interactionCreate", async (interaction) => {
                 console.log(
                   `Connection transitioned from ${oldState.status} to ${newState.status}`,
                 );
-              }
+              },
             );
 
             activeConnections[idx].connection.on(
               VoiceConnectionStatus.Ready,
               () => {
                 console.log(
-                  "The connection has entered the Ready state - ready to play audio!"
+                  "The connection has entered the Ready state - ready to play audio!",
                 );
-              }
+              },
             );
 
             activeConnections[idx].connection.subscribe(
-              activeConnections[activeConnections.length - 1].player
+              activeConnections[activeConnections.length - 1].player,
             );
 
             response += " - Joining voice!";
@@ -281,7 +287,7 @@ client.on("interactionCreate", async (interaction) => {
         break;
 
       case "listvoices":
-        polly.describeVoices({ LanguageCode: "en-US" }, function (err, data) {
+        polly.describeVoices({ LanguageCode: "en-US" }, function(err, data) {
           if (err) {
             console.log(err, err.stack);
           } else {
@@ -355,7 +361,7 @@ client.on("interactionCreate", async (interaction) => {
                 console.log("Saved new setting");
               }
             }
-          }
+          },
         );
         break;
 
@@ -382,7 +388,35 @@ client.login(process.env.token);
 setInterval(playQueue, 1);
 
 client.on("messageCreate", async (message) => {
+  const userID = message.member.id;
+  console.log('User ID listing as ' + userID);
+  let voice = 'Salli';
   let idx = -1;
+  let cached = false;
+
+  for (let i = 0; i < cached_user_data.length; i++) {
+    if (cached_user_data[i].hasOwnProperty(userID)) {
+        cached = true;
+      if (cached_user_data[i][userID].global.voice) {
+          voice = cached_user_data[i][userID].global.voice;
+          console.log('Attempted to chance voice for this TTS request to ' + voice);
+      }
+      break;
+    }
+  }
+
+  if (!cached) {
+    const query = await load_document(userID);
+    if (query) {
+        const newSetting = {
+            [userID]: query,
+            };
+            cached_user_data.push(newSetting);
+            voice = newSetting[userID].global.voice;
+    } else {
+        cached_user_data.push(makeEmptyCacheEntry(userID));
+    }
+  }
 
   for (let i = 0; i < activeConnections.length; i++) {
     if (activeConnections[i].guildId === message.channel.guild.id) {
@@ -413,11 +447,11 @@ client.on("messageCreate", async (message) => {
     const params = {
       OutputFormat: "ogg_vorbis",
       Text: message.content,
-      VoiceId: "Salli",
+      VoiceId: voice,
       SampleRate: "24000",
     };
 
-    polly.synthesizeSpeech(params, function (err, data) {
+    polly.synthesizeSpeech(params, function(err, data) {
       if (activeConnections[idx].connection !== null) {
         const audioFile = "audio/" + message.id + ".ogg";
         fs.writeFile(audioFile, data.AudioStream, (err) => {
@@ -459,23 +493,21 @@ function playQueue() {
       activeConnections[i].queue.shift();
     } else {
       console.log(
-        "playQueue: Playing " + activeConnections[i].queue[0].message
+        "playQueue: Playing " + activeConnections[i].queue[0].message,
       );
       activeConnections[i].playing = true;
       activeConnections[i].connection = getVoiceConnection(
-        activeConnections[i].queue[0].id
+        activeConnections[i].queue[0].id,
       );
       const audioFileHandle = createAudioResource(
         fs.createReadStream(
           join(__dirname, activeConnections[i].queue[0].path),
           {
             inputType: StreamType.OggOpus,
-          }
-        )
+          },
+        ),
       );
       activeConnections[i].player.play(audioFileHandle);
     }
   }
 }
-
-// save_document({text: 'ecks dee'}, 'xD');
