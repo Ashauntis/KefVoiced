@@ -49,3 +49,36 @@
 <!-- Custom Discord Emoji -->
 
 <:pog:843174837732114502>
+
+
+
+                    // can we not just structure the object a lil differently?
+
+                    /*
+
+                    [
+                        {
+                            456121651616549879616: {
+                                global: {
+                                    voice: 'Joanna',
+                                    volume: 0.5,
+                                }
+                                guildID987968516321 {
+                                    voice: 'Salli'
+
+
+                                },
+                                guildId {
+                                    voice: 'Salli'
+
+                                }
+
+                                voice: {
+                                    global: Salli
+                                    guildID987968516321: Matthew
+                                }
+                            }
+                        }
+                    ]
+                    
+                    */
