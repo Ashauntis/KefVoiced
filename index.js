@@ -397,9 +397,11 @@ client.on("messageCreate", async (message) => {
   for (let i = 0; i < cached_user_data.length; i++) {
     if (cached_user_data[i].hasOwnProperty(userID)) {
         cached = true;
-      if (cached_user_data[i][userID].global.voice) {
-          voice = cached_user_data[i][userID].global.voice;
-          console.log('Attempted to change voice for this TTS request to ' + voice);
+      if (cached_user_data[i][userID].global) {
+          if (cached_user_data[i][userID].global.voice) {
+            voice = cached_user_data[i][userID].global.voice;
+            console.log('Attempted to change voice for this TTS request to ' + voice);
+          }
       }
       break;
     }
