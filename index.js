@@ -399,7 +399,7 @@ client.on("messageCreate", async (message) => {
         cached = true;
       if (cached_user_data[i][userID].global.voice) {
           voice = cached_user_data[i][userID].global.voice;
-          console.log('Attempted to chance voice for this TTS request to ' + voice);
+          console.log('Attempted to change voice for this TTS request to ' + voice);
       }
       break;
     }
@@ -408,14 +408,16 @@ client.on("messageCreate", async (message) => {
   if (!cached) {
     const query = await load_document(userID);
     if (query) {
-        const newSetting = {
-            [userID]: query,
-            };
-            cached_user_data.push(newSetting);
-            voice = newSetting[userID].global.voice;
+      const newSetting = {
+        [userID]: query,
+      };
+      cached_user_data.push(newSetting);
+      voice = newSetting[userID].global.voice;
     } else {
         cached_user_data.push(makeEmptyCacheEntry(userID));
     }
+  } else {
+    console.log('Using cached voice setting of ' + voice);
   }
 
   for (let i = 0; i < activeConnections.length; i++) {
