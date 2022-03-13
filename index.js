@@ -293,6 +293,9 @@ client.on("interactionCreate", async (interaction) => {
           } else {
             response = "The currently supported voices include ";
             for (let i = 0; i < data.Voices.length; i++) {
+              if (data.Voices[i].Name === 'Kevin') {
+                continue;
+              }
               if (i != data.Voices.length - 1) {
                 response +=
                   data.Voices[i].Name + " (" + data.Voices[i].Gender + "), ";
@@ -301,7 +304,7 @@ client.on("interactionCreate", async (interaction) => {
                   data.Voices[i].Name + " (" + data.Voices[i].Gender + "). ";
               }
             }
-            interaction.reply(response);
+            interaction.reply({ content: response, ephemeral: true });
           }
         });
         break;
@@ -323,9 +326,13 @@ client.on("interactionCreate", async (interaction) => {
                   break;
                 }
               }
+              if (choice == 'Kevin') {
+                validChoice = false;
+              }
             }
 
             if (validChoice) {
+              interaction.reply({ content: `Setting your voice to ${choice}.`, ephemeral: true });
               console.log(`Checking for existing setting for ${userID}`);
               const query = await load_document(userID);
 
