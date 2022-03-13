@@ -367,6 +367,8 @@ client.on("interactionCreate", async (interaction) => {
                 save_document(newSetting[userID], userID);
                 console.log("Saved new setting");
               }
+            } else {
+              interaction.reply({ content: `${choice} is not a currently supported voice. You can use /listvoices to see the currently supported choices.`, ephemeral: true });
             }
           },
         );
