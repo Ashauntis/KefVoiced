@@ -375,7 +375,7 @@ client.on("interactionCreate", async (interaction) => {
         break;
 
       default:
-        response = "Command not currently supported";
+        response = { content: "Command not currently supported", ephemeral: true };
         break;
     }
 
@@ -397,8 +397,9 @@ client.login(process.env.token);
 setInterval(playQueue, 1);
 
 client.on("messageCreate", async (message) => {
+
   const userID = message.member.id;
-  console.log('User ID listing as ' + userID);
+  // console.log('User ID listing as ' + userID);
   let voice = 'Salli';
   let idx = -1;
   let cached = false;
@@ -409,7 +410,7 @@ client.on("messageCreate", async (message) => {
       if (cached_user_data[i][userID].global) {
           if (cached_user_data[i][userID].global.voice) {
             voice = cached_user_data[i][userID].global.voice;
-            console.log('Attempted to change voice for this TTS request to ' + voice);
+            // console.log('Attempted to change voice for this TTS request to ' + voice);
           }
       }
       break;
@@ -433,9 +434,9 @@ client.on("messageCreate", async (message) => {
 
   for (let i = 0; i < activeConnections.length; i++) {
     if (activeConnections[i].guildId === message.channel.guild.id) {
-      console.log("found connection");
-      console.log(activeConnections[i].guildId);
-      console.log(message.channel.guild.id);
+      // console.log("found connection");
+      // console.log(activeConnections[i].guildId);
+      // console.log(message.channel.guild.id);
 
       idx = i;
       break;
@@ -456,6 +457,13 @@ client.on("messageCreate", async (message) => {
     if (message.content.search("http") != -1) {
       message.content = author + " sent a link.";
     }
+
+    message.mentions.users.forEach((value, key) => {
+      const needle = `<@!${key}>`;
+      const replace = ` at ${value.username} `;
+      console.log(`${value.username} is ${needle}`);
+      message.content = message.content.replace(needle, replace);
+    });
 
     const params = {
       OutputFormat: "ogg_vorbis",
