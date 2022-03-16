@@ -397,6 +397,7 @@ client.login(process.env.token);
 setInterval(playQueue, 1);
 
 client.on("messageCreate", async (message) => {
+  console.log(message);
 
   const userID = message.member.id;
   // console.log('User ID listing as ' + userID);
@@ -464,6 +465,14 @@ client.on("messageCreate", async (message) => {
       console.log(`${value.username} is ${needle}`);
       message.content = message.content.replace(needle, replace);
     });
+
+    if (message.content.match(/<:[A-Za-z0-9]{1,64}:\d{1,64}>/g)) {
+      const custemoji = message.content.match(/<:[A-Za-z0-9]{1,64}:\d{1,64}>/g);
+      custemoji.forEach((emoji) => {
+        const emojiname = emoji.split(':');
+        message.content = message.content.replace(emoji, ` ${emojiname[1]} `);
+      });
+    }
 
     const params = {
       OutputFormat: "ogg_vorbis",
