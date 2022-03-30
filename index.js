@@ -207,6 +207,7 @@ client.once("ready", () => {
 // Listen for slash commands from the discord client.
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isCommand()) {
+    console.log(interaction);
     const { commandName } = interaction;
     const userID = interaction.member.id;
     const guildID = interaction.member.guildID;
@@ -216,25 +217,26 @@ client.on("interactionCreate", async (interaction) => {
     let cached = false;
     let newSetting = null;
 
-    const channel = interaction.member?.voice.channel;
+    const voicechannel = interaction.member?.voice.channel;
 
     switch (commandName) {
       case "join":
         response = "Request to join voice received";
-        if (channel) {
+        if (voicechannel) {
           try {
             activeConnections.push(new VoiceConnection());
             const idx = activeConnections.length - 1;
             activeConnections[idx].connection = await joinVoiceChannel({
-              channelId: channel.id,
-              guildId: channel.guild.id,
-              adapterCreator: channel.guild.voiceAdapterCreator,
+              channelId: voicechannel.id,
+              guildId: voicechannel.guild.id,
+              adapterCreator: voicechannel.guild.voiceAdapterCreator,
             });
 
             console.log(activeConnections[idx].connection._state);
 
-            activeConnections[idx].channelId = channel.id;
-            activeConnections[idx].guildId = channel.guild.id;
+            activeConnections[idx].channelId = voicechannel.id;
+            activeConnections[idx].guildId = voicechannel.guild.id;
+            activeConnections[idx].ttsChannel = interaction.channelId;
 
             activeConnections[idx].connection.on(
               "stateChange",
@@ -263,7 +265,7 @@ client.on("interactionCreate", async (interaction) => {
             response = error.message;
             console.error(error);
           }
-          response = "Yo!";
+          response = "Hello!";
         } else {
           response = "Join a voice channel and then try again!";
         }
@@ -276,7 +278,7 @@ client.on("interactionCreate", async (interaction) => {
               response = "Goodbye!";
               activeConnections[i].connection.destroy();
               activeConnections.splice(i, 1);
-              return;
+              break;
             } else {
               response = "Not currently connected to voice.";
             }
@@ -405,6 +407,26 @@ client.on("messageCreate", async (message) => {
   let idx = -1;
   let cached = false;
 
+  for (let i = 0; i < activeConnections.length; i++) {
+    if (activeConnections[i].guildId === message.channel.guild.id) {
+      // console.log("found connection");
+      // console.log(activeConnections[i].guildId);
+      // console.log(message.channel.guild.id);
+      idx = i;
+      break;
+    }
+  }
+
+  if (idx == -1) {
+    console.log('Not processing request as the bot is not connected to voice.');
+    return;
+  }
+
+  if (activeConnections[idx].ttsChannel != message.channelId) {
+    console.log(`Not processing tts request as this message was not in the designated TTS channel. (Message content: ${message.content})`);
+    return;
+  }
+
   for (let i = 0; i < cached_user_data.length; i++) {
     if (cached_user_data[i].hasOwnProperty(userID)) {
         cached = true;
@@ -433,17 +455,6 @@ client.on("messageCreate", async (message) => {
     console.log('Using cached voice setting of ' + voice);
   }
 
-  for (let i = 0; i < activeConnections.length; i++) {
-    if (activeConnections[i].guildId === message.channel.guild.id) {
-      // console.log("found connection");
-      // console.log(activeConnections[i].guildId);
-      // console.log(message.channel.guild.id);
-
-      idx = i;
-      break;
-    }
-  }
-
   if (idx >= 0) {
     let author = message.member.nickname;
     if (author === null) {
@@ -461,16 +472,18 @@ client.on("messageCreate", async (message) => {
 
     message.mentions.users.forEach((value, key) => {
       const needle = `<@!${key}>`;
+      const needle_alt = `<@${key}>`;
       const replace = ` at ${value.username} `;
       console.log(`${value.username} is ${needle}`);
-      message.content = message.content.replace(needle, replace);
+      message.content = message.content.replaceAll(needle, replace);
+      message.content = message.content.replaceAll(needle_alt, replace);
     });
 
     if (message.content.match(/<:[A-Za-z0-9]{1,64}:\d{1,64}>/g)) {
       const custemoji = message.content.match(/<:[A-Za-z0-9]{1,64}:\d{1,64}>/g);
       custemoji.forEach((emoji) => {
         const emojiname = emoji.split(':');
-        message.content = message.content.replace(emoji, ` ${emojiname[1]} `);
+        message.content = message.content.replaceAll(emoji, ` ${emojiname[1]} `);
       });
     }
 
