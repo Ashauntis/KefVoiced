@@ -50,7 +50,7 @@ class VoiceConnection {
 
     this.player.on(AudioPlayerStatus.Playing, (oldState, newState) => {
       this.playing = true;
-      console.log("Audio player is in the Playing state!");
+      // console.log("Audio player is in the Playing state!");
     });
 
     this.player.on("stateChange", (oldState, newState) => {
@@ -59,7 +59,7 @@ class VoiceConnection {
         oldState.status == AudioPlayerStatus.Playing &&
         newState.status != AudioPlayerStatus.Playing
       ) {
-        console.log("Audio player has left the the Playing state!");
+        // console.log("Audio player has left the the Playing state!");
         this.playing = false;
         this.advance = true;
       }
@@ -128,11 +128,11 @@ async function load_document(id) {
   console.log("Loading document with id: " + id);
   // get the document from Amazon DynamoDB
   await dynamo.getItem(params, function (err, data) {
-      console.log("callback for document with id: " + id);
+      // console.log("callback for document with id: " + id);
       if (err) {
         console.log(err, err.stack);
       } else if (Object.keys(data).length == 0) {
-        console.log("No document found with id: " + id);
+        // console.log("No document found with id: " + id);
       } else {
         console.dir(data);
         result_data = JSON.parse(data.Item.value.S);
@@ -141,7 +141,7 @@ async function load_document(id) {
     .promise();
 
   if (result_data == null) {
-    console.log(`Document not found: ${id}`);
+    // console.log(`Document not found: ${id}`);
   } else {
     console.log(`Successfully loaded document: ${id} `);
   }
@@ -179,6 +179,7 @@ async function save_document(data_object, id) {
 
 let cached_user_data = [];
 let cached_guild_data = [];
+let activeConnections = [];
 
 // Create a new client instance
 const client = new Client({
@@ -190,7 +191,6 @@ const client = new Client({
   ],
 });
 
-let activeConnections = [];
 
 // When the client is ready, run this code (only once)
 client.once("ready", () => {
@@ -207,7 +207,7 @@ client.once("ready", () => {
 // Listen for slash commands from the discord client.
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isCommand()) {
-    console.log(interaction);
+    // console.log(interaction);
     const { commandName } = interaction;
     const userID = interaction.member.id;
     const guildID = interaction.member.guildID;
@@ -217,6 +217,22 @@ client.on("interactionCreate", async (interaction) => {
     let cached = false;
     let newSetting = null;
 
+    let idx = -1;
+
+    // console.log(`Interaction logged from guildId ${interaction.guildId}. There are currently ${activeConnections.length} active connections.`);
+
+    for (let i = 0; i < activeConnections.length; i++) {
+      if (activeConnections[i].guildId === interaction.guildId) {
+        idx = i;
+        console.log('Matching active connection found');
+        break;
+      }
+    }
+
+    // if (idx == -1) {
+    //   console.log('Not processing request as the bot is not connected to voice.');
+    // }
+
     const voicechannel = interaction.member?.voice.channel;
 
     switch (commandName) {
@@ -225,29 +241,29 @@ client.on("interactionCreate", async (interaction) => {
         if (voicechannel) {
           try {
             activeConnections.push(new VoiceConnection());
-            const idx = activeConnections.length - 1;
-            activeConnections[idx].connection = await joinVoiceChannel({
+            const idx2 = activeConnections.length - 1;
+            activeConnections[idx2].connection = await joinVoiceChannel({
               channelId: voicechannel.id,
               guildId: voicechannel.guild.id,
               adapterCreator: voicechannel.guild.voiceAdapterCreator,
             });
 
-            console.log(activeConnections[idx].connection._state);
+            // console.log(activeConnections[idx2].connection._state);
 
-            activeConnections[idx].channelId = voicechannel.id;
-            activeConnections[idx].guildId = voicechannel.guild.id;
-            activeConnections[idx].ttsChannel = interaction.channelId;
+            activeConnections[idx2].channelId = voicechannel.id;
+            activeConnections[idx2].guildId = voicechannel.guild.id;
+            activeConnections[idx2].ttsChannel = interaction.channelId;
 
-            activeConnections[idx].connection.on(
+            activeConnections[idx2].connection.on(
               "stateChange",
               (oldState, newState) => {
-                console.log(
-                  `Connection transitioned from ${oldState.status} to ${newState.status}`,
-                );
+                // console.log(
+                  // `Connection transitioned from ${oldState.status} to ${newState.status}`,
+                // );
               },
             );
 
-            activeConnections[idx].connection.on(
+            activeConnections[idx2].connection.on(
               VoiceConnectionStatus.Ready,
               () => {
                 console.log(
@@ -256,7 +272,7 @@ client.on("interactionCreate", async (interaction) => {
               },
             );
 
-            activeConnections[idx].connection.subscribe(
+            activeConnections[idx2].connection.subscribe(
               activeConnections[activeConnections.length - 1].player,
             );
 
@@ -313,7 +329,7 @@ client.on("interactionCreate", async (interaction) => {
 
       case "setvoice":
         choice = interaction.options.getString("input").capitalize();
-        console.log("Choice input was " + choice);
+        // console.log("Choice input was " + choice);
         polly.describeVoices(
           { LanguageCode: "en-US" },
           async function(err, data) {
@@ -324,7 +340,7 @@ client.on("interactionCreate", async (interaction) => {
               for (let i = 0; i < data.Voices.length; i++) {
                 if (data.Voices[i].Name === choice) {
                   validChoice = true;
-                  console.log("Choice was valid");
+                  // console.log("Choice was valid");
                   break;
                 }
               }
@@ -335,12 +351,12 @@ client.on("interactionCreate", async (interaction) => {
 
             if (validChoice) {
               interaction.reply({ content: `Setting your voice to ${choice}.`, ephemeral: true });
-              console.log(`Checking for existing setting for ${userID}`);
+              // console.log(`Checking for existing setting for ${userID}`);
               const query = await load_document(userID);
 
               if (query) {
 
-                console.log("Found existing setting");
+                // console.log("Found existing setting");
                 query.global.voice = choice;
                 newSetting = {
                   [userID]: query,
@@ -360,20 +376,41 @@ client.on("interactionCreate", async (interaction) => {
                 }
 
               } else {
-                console.log("No existing setting found");
-                console.log("Attempting to set voice as " + choice);
+                // console.log("No existing setting found");
+                // console.log("Attempting to set voice as " + choice);
                 newSetting = makeDefaultSettings(userID);
                 newSetting[userID].global.voice = choice;
                 cached_user_data.push(newSetting);
                 console.log(newSetting[userID]);
                 save_document(newSetting[userID], userID);
-                console.log("Saved new setting");
+                console.log(`Saved new voice setting for ${userID}`);
               }
             } else {
               interaction.reply({ content: `${choice} is not a currently supported voice. You can use /listvoices to see the currently supported choices.`, ephemeral: true });
             }
           },
         );
+        break;
+
+      case 'help':
+        interaction.reply({ content: 'Hello! If the bot is not reading your messages aloud, be sure that the bot is connected to a voice channel, and your messages are from the channel that the /join command was used from.', ephemeral: true });
+        break;
+
+      case 'soundboard':
+        if (idx == -1) {
+          interaction.reply({ content: 'Connect the bot to voice and try again!', ephemeral: true });
+          break;
+        }
+
+        if (interaction.options.getSubcommand() === 'buttchugs') {
+          interaction.reply({ content: 'Playing "Buttchugs"!', ephemeral: true });
+          activeConnections[idx].queue.push({
+            id: interaction.guildId,
+            path: 'audio/soundboard/buttchugs.mp3',
+            message: 'Buttchugs',
+            soundboard: true,
+          });
+        }
         break;
 
       default:
@@ -399,7 +436,7 @@ client.login(process.env.token);
 setInterval(playQueue, 1);
 
 client.on("messageCreate", async (message) => {
-  console.log(message);
+  // console.log(message);
 
   const userID = message.member.id;
   // console.log('User ID listing as ' + userID);
@@ -418,7 +455,7 @@ client.on("messageCreate", async (message) => {
   }
 
   if (idx == -1) {
-    console.log('Not processing request as the bot is not connected to voice.');
+    // console.log('Not processing request as the bot is not connected to voice.');
     return;
   }
 
@@ -452,7 +489,7 @@ client.on("messageCreate", async (message) => {
         cached_user_data.push(makeEmptyCacheEntry(userID));
     }
   } else {
-    console.log('Using cached voice setting of ' + voice);
+    // console.log('Using cached voice setting of ' + voice);
   }
 
   if (idx >= 0) {
@@ -474,7 +511,7 @@ client.on("messageCreate", async (message) => {
       const needle = `<@!${key}>`;
       const needle_alt = `<@${key}>`;
       const replace = ` at ${value.username} `;
-      console.log(`${value.username} is ${needle}`);
+      // console.log(`${value.username} is ${needle}`);
       message.content = message.content.replaceAll(needle, replace);
       message.content = message.content.replaceAll(needle_alt, replace);
     });
@@ -528,11 +565,13 @@ function playQueue() {
     } else if (activeConnections[i].advance) {
       // console.log('playQueue: Advancing the queue!');
       activeConnections[i].advance = false;
-      try {
+      if (activeConnections[i].queue[0].soundboard != true) {
+        try {
         fs.unlinkSync(activeConnections[i].queue[0].path);
       } catch (err) {
         console.error(err);
       }
+    }
       activeConnections[i].queue.shift();
     } else {
       console.log(
