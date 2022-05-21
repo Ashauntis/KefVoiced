@@ -7,7 +7,7 @@ require("dotenv").config();
 const fs = require("fs");
 const { join } = require("path");
 const aws = require("aws-sdk");
-const { Client, Intents } = require("discord.js");
+const { Client, Intents, MessageEmbed } = require("discord.js");
 const {
   AudioPlayer,
   AudioPlayerStatus,
@@ -50,7 +50,6 @@ class VoiceConnection {
 
     this.player.on(AudioPlayerStatus.Playing, (oldState, newState) => {
       this.playing = true;
-      // console.log("Audio player is in the Playing state!");
     });
 
     this.player.on("stateChange", (oldState, newState) => {
@@ -59,7 +58,6 @@ class VoiceConnection {
         oldState.status == AudioPlayerStatus.Playing &&
         newState.status != AudioPlayerStatus.Playing
       ) {
-        // console.log("Audio player has left the the Playing state!");
         this.playing = false;
         this.advance = true;
       }
@@ -128,7 +126,6 @@ async function load_document(id) {
   console.log("Loading document with id: " + id);
   // get the document from Amazon DynamoDB
   await dynamo.getItem(params, function (err, data) {
-      // console.log("callback for document with id: " + id);
       if (err) {
         console.log(err, err.stack);
       } else if (Object.keys(data).length == 0) {
@@ -181,6 +178,9 @@ let cached_user_data = [];
 let cached_guild_data = [];
 let activeConnections = [];
 
+let soundboardList = [];
+let soundboardName = 'aSoundboardName';
+
 // Create a new client instance
 const client = new Client({
   intents: [
@@ -219,7 +219,14 @@ client.on("interactionCreate", async (interaction) => {
 
     let idx = -1;
 
-    // console.log(`Interaction logged from guildId ${interaction.guildId}. There are currently ${activeConnections.length} active connections.`);
+    const soundboardcard = new MessageEmbed()
+        .setTitle('Kef Voiced Soundboard')
+        .setDescription('The following emoji\'s will play a soundboard in the channel you performed the /soundboard command')
+        .addFields(
+            { name: 'Buttchugs', value: ':blossom:', inline: true },
+            { name: 'perfect', value: ':100:', inline: true },
+          )
+        .setFooter({ text: 'If you have any questions, feel free to ask' });
 
     for (let i = 0; i < activeConnections.length; i++) {
       if (activeConnections[i].guildId === interaction.guildId) {
@@ -229,15 +236,10 @@ client.on("interactionCreate", async (interaction) => {
       }
     }
 
-    // if (idx == -1) {
-    //   console.log('Not processing request as the bot is not connected to voice.');
-    // }
-
     const voicechannel = interaction.member?.voice.channel;
 
     switch (commandName) {
       case "join":
-        response = "Request to join voice received";
         if (voicechannel) {
           try {
             activeConnections.push(new VoiceConnection());
@@ -276,12 +278,12 @@ client.on("interactionCreate", async (interaction) => {
               activeConnections[activeConnections.length - 1].player,
             );
 
-            response += " - Joining voice!";
+            // response += " - Joining voice!";
           } catch (error) {
             response = error.message;
             console.error(error);
           }
-          response = "Hello!";
+          // response = "Hello!";
         } else {
           response = "Join a voice channel and then try again!";
         }
@@ -392,25 +394,35 @@ client.on("interactionCreate", async (interaction) => {
         );
         break;
 
-      case 'help':
-        interaction.reply({ content: 'Hello! If the bot is not reading your messages aloud, be sure that the bot is connected to a voice channel, and your messages are from the channel that the /join command was used from.', ephemeral: true });
-        break;
-
       case 'soundboard':
         if (idx == -1) {
           interaction.reply({ content: 'Connect the bot to voice and try again!', ephemeral: true });
           break;
         }
 
-        if (interaction.options.getSubcommand() === 'buttchugs') {
-          interaction.reply({ content: 'Playing "Buttchugs"!', ephemeral: true });
-          activeConnections[idx].queue.push({
-            id: interaction.guildId,
-            path: 'audio/soundboard/buttchugs.mp3',
-            message: 'Buttchugs',
-            soundboard: true,
-          });
-        }
+        interaction.reply({ content: 'Sending you the soundboard via Direct Message', ephemeral: true });
+        soundboardName = await interaction.user.send({ embeds: [soundboardcard], fetchReply: true });
+        soundboardName.react('😄');
+        soundboardList.push(soundboardName);
+        soundboardName.awaitReactions({ max: 1, time: 100000000 })
+          .then(collected => console.log('hello'))
+          .catch(console.error);
+        console.log(soundboardList[0]);
+        break;
+
+        // if (interaction.options.getSubcommand() === 'buttchugs') {
+        //   interaction.reply({ content: 'Playing "Buttchugs"!', ephemeral: true });
+        //   activeConnections[idx].queue.push({
+        //     id: interaction.guildId,
+        //     path: 'audio/soundboard/buttchugs.mp3',
+        //     message: 'Buttchugs',
+        //     soundboard: true,
+        //   });
+        // }
+        // break;
+
+      case 'help':
+        interaction.reply({ content: 'Hello! If the bot is not reading your messages aloud, be sure that the bot is connected to a voice channel, and your messages are from the channel that the /join command was used from.', ephemeral: true });
         break;
 
       default:
@@ -435,20 +447,22 @@ client.on("interactionCreate", async (interaction) => {
 client.login(process.env.token);
 setInterval(playQueue, 1);
 
+client.on("messageReactionAdd", async (messageReaction) => {
+  // console.log(messageReaction);
+});
+
 client.on("messageCreate", async (message) => {
   // console.log(message);
+  // console.log(message.attachments.first().contentType);
 
   const userID = message.member.id;
   // console.log('User ID listing as ' + userID);
-  let voice = 'Salli';
+  let voice = 'Joey';
   let idx = -1;
   let cached = false;
 
   for (let i = 0; i < activeConnections.length; i++) {
     if (activeConnections[i].guildId === message.channel.guild.id) {
-      // console.log("found connection");
-      // console.log(activeConnections[i].guildId);
-      // console.log(message.channel.guild.id);
       idx = i;
       break;
     }
@@ -522,6 +536,10 @@ client.on("messageCreate", async (message) => {
         const emojiname = emoji.split(':');
         message.content = message.content.replaceAll(emoji, ` ${emojiname[1]} `);
       });
+    }
+
+    if ((message.content === '') && (message.attachments.first().contentType.includes('image/'))) {
+      message.content = author + ' sent an image.';
     }
 
     const params = {

@@ -14,10 +14,7 @@ const commands = [
 	new SlashCommandBuilder().setName('setvoice').setDescription('Set your personal voice option. Eg: /setvoice Salli').addStringOption(option => option.setName('input')
 	.setDescription('What voice would you like to use?')
 	.setRequired(true)),
-	new SlashCommandBuilder().setName('soundboard').setDescription('Play a prerecorded sound!').addSubcommand(subcommand =>
-		subcommand
-			.setName('buttchugs')
-			.setDescription('Play this sound')),
+	new SlashCommandBuilder().setName('soundboard').setDescription('Send a list of prerecorded sounds to your DMs'),
 ]
 	.map(command => command.toJSON());
 
