@@ -178,13 +178,12 @@ let cached_user_data = [];
 let cached_guild_data = [];
 let activeConnections = [];
 
-let soundboardList = [];
-let soundboardName = 'aSoundboardName';
-
 // Create a new client instance
 const client = new Client({
   intents: [
+    Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
     Intents.FLAGS.GUILD_MESSAGES,
+    Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
     Intents.FLAGS.GUILD_PRESENCES,
     Intents.FLAGS.GUILD_VOICE_STATES,
     Intents.FLAGS.GUILDS,
@@ -216,6 +215,8 @@ client.on("interactionCreate", async (interaction) => {
     let validChoice = null;
     let cached = false;
     let newSetting = null;
+    let collector = null;
+    let filter = null;
 
     let idx = -1;
 
@@ -228,6 +229,7 @@ client.on("interactionCreate", async (interaction) => {
           )
         .setFooter({ text: 'If you have any questions, feel free to ask' });
 
+    // determine if a connection is present in the channel command was used
     for (let i = 0; i < activeConnections.length; i++) {
       if (activeConnections[i].guildId === interaction.guildId) {
         idx = i;
@@ -240,6 +242,12 @@ client.on("interactionCreate", async (interaction) => {
 
     switch (commandName) {
       case "join":
+
+        if (idx != -1) {
+          interaction.reply({ content: 'There is already an established connection on this server. If you are trying to move channels, use /leave and try again.', ephemeral: true });
+          break;
+        }
+
         if (voicechannel) {
           try {
             activeConnections.push(new VoiceConnection());
@@ -279,11 +287,14 @@ client.on("interactionCreate", async (interaction) => {
             );
 
             // response += " - Joining voice!";
+
+            activeConnections[idx2].soundboard = [];
           } catch (error) {
             response = error.message;
             console.error(error);
           }
-          // response = "Hello!";
+          // interaction.reply({ content: 'Hello!', ephemeral: false });
+          interaction.reply({ content: 'Voice Connection Ready', ephemeral: true });
         } else {
           response = "Join a voice channel and then try again!";
         }
@@ -401,13 +412,20 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         interaction.reply({ content: 'Sending you the soundboard via Direct Message', ephemeral: true });
-        soundboardName = await interaction.user.send({ embeds: [soundboardcard], fetchReply: true });
-        soundboardName.react('😄');
-        soundboardList.push(soundboardName);
-        soundboardName.awaitReactions({ max: 1, time: 100000000 })
-          .then(collected => console.log('hello'))
-          .catch(console.error);
-        console.log(soundboardList[0]);
+
+        activeConnections[idx].soundboard[userID] = await interaction.user.send({ embeds: [soundboardcard], fetchReply: true });
+        await activeConnections[idx].soundboard[userID].react('🌼');
+        filter = (reaction, user) => { return user.id != '941537585170382928' && user.id != '941542196337844245'; };
+        collector = activeConnections[idx].soundboard[userID].createReactionCollector({ filter, time: 86_400_000 });
+        collector.on('collect', (reaction, user) => {
+          // console.log(`Collected ${reaction.emoji.name} from ${user.id} to play in ${interaction.member?.voice.channel}`);
+          activeConnections[idx].queue.push({
+                id: interaction.guildId,
+                path: 'audio/soundboard/buttchugs.mp3',
+                message: 'Buttchugs',
+                soundboard: true,
+              });
+        });
         break;
 
         // if (interaction.options.getSubcommand() === 'buttchugs') {
@@ -585,11 +603,11 @@ function playQueue() {
       activeConnections[i].advance = false;
       if (activeConnections[i].queue[0].soundboard != true) {
         try {
-        fs.unlinkSync(activeConnections[i].queue[0].path);
-      } catch (err) {
-        console.error(err);
+          fs.unlinkSync(activeConnections[i].queue[0].path);
+        } catch (err) {
+          console.error(err);
+        }
       }
-    }
       activeConnections[i].queue.shift();
     } else {
       console.log(
