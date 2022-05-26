@@ -177,6 +177,24 @@ async function save_document(data_object, id) {
 let cached_user_data = [];
 let cached_guild_data = [];
 let activeConnections = [];
+const soundboardOptions = {
+  '🕔': 'brb',
+  '🌼': 'buttchugs',
+  '🚂': 'choochoo',
+  '🍪': 'cookies',
+  '👍': 'doit',
+  '🥁': 'drumroll',
+  '💩': 'fart',
+  '😂': 'hahaha',
+  '🤑': 'kaching',
+  '📯': 'losinghorn',
+  '🐍': 'manaworm',
+  '🐸': 'murlock',
+  '💯': 'perfect',
+  '💵': 'reallyrich',
+  '🐕': 'sonofabitch',
+  '📈': 'stonks',
+};
 
 // Create a new client instance
 const client = new Client({
@@ -224,8 +242,22 @@ client.on("interactionCreate", async (interaction) => {
         .setTitle('Kef Voiced Soundboard')
         .setDescription('The following emoji\'s will play a soundboard in the channel you performed the /soundboard command')
         .addFields(
-            { name: 'Buttchugs', value: ':blossom:', inline: true },
-            { name: 'perfect', value: ':100:', inline: true },
+          { name: 'BRB', value: '🕔', inline: true },
+          { name: 'Buttchugs', value: '🌼', inline: true },
+          { name: 'ChooChoo', value: '🚂', inline: true },
+          { name: 'Cookies', value: '🍪', inline: true },
+          { name: 'Do it', value: '👍', inline: true },
+          { name: 'Drumroll', value: '🥁', inline: true },
+          { name: 'Fart', value: '💩', inline: true },
+          { name: 'Blood Elf Laugh', value: '😂', inline: true },
+          { name: 'Kaching', value: '🤑', inline: true },
+          { name: 'Price is Right Losing Horn', value: '📯', inline: true },
+          { name: 'Is that a manaworm in your pocket?', value: '🐍', inline: true },
+          { name: 'Murlock', value: '🐸', inline: true },
+          { name: 'Street Fighter Perfect!', value: '💯', inline: true },
+          { name: 'I\'m really rich!', value: '💵', inline: true },
+          { name: 'Son of a Bitch!', value: '🐕', inline: true },
+          { name: 'STONKS!', value: '📈', inline: true },
           )
         .setFooter({ text: 'If you have any questions, feel free to ask' });
 
@@ -414,30 +446,40 @@ client.on("interactionCreate", async (interaction) => {
         interaction.reply({ content: 'Sending you the soundboard via Direct Message', ephemeral: true });
 
         activeConnections[idx].soundboard[userID] = await interaction.user.send({ embeds: [soundboardcard], fetchReply: true });
-        await activeConnections[idx].soundboard[userID].react('🌼');
+        await activeConnections[idx].soundboard[userID].react('🕔')
+        .then(activeConnections[idx].soundboard[userID].react('🌼'))
+        .then(activeConnections[idx].soundboard[userID].react('🚂'))
+        .then(activeConnections[idx].soundboard[userID].react('🍪'))
+        .then(activeConnections[idx].soundboard[userID].react('👍'))
+        .then(activeConnections[idx].soundboard[userID].react('🥁'))
+        .then(activeConnections[idx].soundboard[userID].react('💩'))
+        .then(activeConnections[idx].soundboard[userID].react('😂'))
+        .then(activeConnections[idx].soundboard[userID].react('🤑'))
+        .then(activeConnections[idx].soundboard[userID].react('📯'))
+        .then(activeConnections[idx].soundboard[userID].react('🐍'))
+        .then(activeConnections[idx].soundboard[userID].react('🐸'))
+        .then(activeConnections[idx].soundboard[userID].react('💯'))
+        .then(activeConnections[idx].soundboard[userID].react('💵'))
+        .then(activeConnections[idx].soundboard[userID].react('🐕'))
+        .then(activeConnections[idx].soundboard[userID].react('📈'));
         filter = (reaction, user) => { return user.id != '941537585170382928' && user.id != '941542196337844245'; };
         collector = activeConnections[idx].soundboard[userID].createReactionCollector({ filter, time: 86_400_000 });
         collector.on('collect', (reaction, user) => {
           // console.log(`Collected ${reaction.emoji.name} from ${user.id} to play in ${interaction.member?.voice.channel}`);
-          activeConnections[idx].queue.push({
-                id: interaction.guildId,
-                path: 'audio/soundboard/buttchugs.mp3',
-                message: 'Buttchugs',
-                soundboard: true,
-              });
+
+          const pathguide = soundboardOptions[reaction.emoji.name];
+          if (!pathguide) {
+            interaction.user.send({ content: `${reaction.emoji.name} isn't a currently supported choice.` });
+          } else {
+            activeConnections[idx].queue.push({
+              id: interaction.guildId,
+              path: 'audio/soundboard/' + pathguide + '.mp3',
+              message: pathguide,
+              soundboard: true,
+            });
+          }
         });
         break;
-
-        // if (interaction.options.getSubcommand() === 'buttchugs') {
-        //   interaction.reply({ content: 'Playing "Buttchugs"!', ephemeral: true });
-        //   activeConnections[idx].queue.push({
-        //     id: interaction.guildId,
-        //     path: 'audio/soundboard/buttchugs.mp3',
-        //     message: 'Buttchugs',
-        //     soundboard: true,
-        //   });
-        // }
-        // break;
 
       case 'help':
         interaction.reply({ content: 'Hello! If the bot is not reading your messages aloud, be sure that the bot is connected to a voice channel, and your messages are from the channel that the /join command was used from.', ephemeral: true });
