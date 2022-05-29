@@ -178,23 +178,61 @@ let cached_user_data = [];
 let cached_guild_data = [];
 let activeConnections = [];
 const soundboardOptions = {
-  '🕔': 'brb',
-  '🌼': 'buttchugs',
-  '🚂': 'choochoo',
+  '🏟': 'entertained',
+  '💍': 'myprecious',
+  '😭': 'nobodylikesyou',
+  '🤫': 'sneakyhobbitses',
+  '🤨': 'boldstrategy',
+  '📯': 'airhorn',
+  '🏆': 'glory',
+  '🏛': 'senate',
+  '🎲': 'maytheodds',
+  '😜': 'imback',
+  '💰': 'goodatsomething',
+  '🤡': 'herewego',
+  '🙅‍♂️': 'yougetnothing',
+  '💩': 'onebigpile',
+  '🎮': 'gameover',
+  '🛸': 'beammeup',
+  '🍋': 'gottapee',
+  '🏃‍♂️': 'forrestrun',
+  '✨': 'legendary',
+  '💀': 'liveandletdie',
+  '🧙‍♂️': 'flyyoufools',
+  '😇': 'iamgod',
+  '🐛': 'cena',
+  '🤢': 'nasty',
+  '🤗': 'hug',
+  '🙁': 'notnice',
+  '👪': 'threefriends',
+  '🤦‍♂️': 'idiot',
+  '😲': 'surprisetobesure',
+  '👈': 'choseneone',
+  '😓': 'badfeeling',
+  '🧠': 'yoda',
+  '🎨': 'happyaccidents',
+  '🥇': 'flawlessvictory',
+  '💪': 'underestimate',
+  '😡': 'howrude',
   '🍪': 'cookies',
-  '👍': 'doit',
-  '🥁': 'drumroll',
-  '💩': 'fart',
-  '😂': 'hahaha',
-  '🤑': 'kaching',
-  '📯': 'losinghorn',
-  '🐍': 'manaworm',
-  '🐸': 'murlock',
-  '💯': 'perfect',
-  '💵': 'reallyrich',
-  '🐕': 'sonofabitch',
-  '📈': 'stonks',
+  '🙄': 'rickroll',
+  '🤖': 'illbeback',
+  '🚁': 'chopper',
 };
+
+function queueSoundboard(reaction, interaction, idx) {
+  const pathguide = soundboardOptions[reaction.emoji.name];
+      if (!pathguide) {
+        interaction.user.send({ content: `${reaction.emoji.name} isn't a currently supported choice.` });
+      } else {
+        activeConnections[idx].queue.push({
+          id: interaction.guildId,
+          path: 'audio/soundboard/' + pathguide + '.mp3',
+          message: pathguide,
+          soundboard: true,
+        });
+      }
+}
 
 // Create a new client instance
 const client = new Client({
@@ -233,35 +271,29 @@ client.on("interactionCreate", async (interaction) => {
     let validChoice = null;
     let cached = false;
     let newSetting = null;
-    let collector = null;
+    let collector1 = null;
+    let collector2 = null;
+    let collector3 = null;
+    let collector4 = null;
+
     let filter = null;
 
     let idx = -1;
 
-    const soundboardcard = new MessageEmbed()
+    let sb1obj = null;
+    let sb2obj = null;
+    let sb3obj = null;
+    let sb4obj = null;
+
+    const sb = new MessageEmbed()
         .setTitle('Kef Voiced Soundboard')
         .setDescription('The following emoji\'s will play a soundboard in the channel you performed the /soundboard command')
         .addFields(
-          { name: 'BRB', value: '🕔', inline: true },
-          { name: 'Buttchugs', value: '🌼', inline: true },
-          { name: 'ChooChoo', value: '🚂', inline: true },
-          { name: 'Cookies', value: '🍪', inline: true },
-          { name: 'Do it', value: '👍', inline: true },
-          { name: 'Drumroll', value: '🥁', inline: true },
-          { name: 'Fart', value: '💩', inline: true },
-          { name: 'Blood Elf Laugh', value: '😂', inline: true },
-          { name: 'Kaching', value: '🤑', inline: true },
-          { name: 'Price is Right Losing Horn', value: '📯', inline: true },
-          { name: 'Is that a manaworm in your pocket?', value: '🐍', inline: true },
-          { name: 'Murlock', value: '🐸', inline: true },
-          { name: 'Street Fighter Perfect!', value: '💯', inline: true },
-          { name: 'I\'m really rich!', value: '💵', inline: true },
-          { name: 'Son of a Bitch!', value: '🐕', inline: true },
-          { name: 'STONKS!', value: '📈', inline: true },
+          { name: 'Click here for the soundboard key', value: '[Click me!](https://docs.google.com/spreadsheets/d/1eYwxOGZScgQpLbsAtN5fP0WfLq9VT6jnxzj6-p5QPqE/edit#gid=0)', inline: true },
           )
         .setFooter({ text: 'If you have any questions, feel free to ask' });
 
-    // determine if a connection is present in the channel command was used
+        // determine if a connection is present in the channel command was used
     for (let i = 0; i < activeConnections.length; i++) {
       if (activeConnections[i].guildId === interaction.guildId) {
         idx = i;
@@ -290,8 +322,6 @@ client.on("interactionCreate", async (interaction) => {
               adapterCreator: voicechannel.guild.voiceAdapterCreator,
             });
 
-            // console.log(activeConnections[idx2].connection._state);
-
             activeConnections[idx2].channelId = voicechannel.id;
             activeConnections[idx2].guildId = voicechannel.guild.id;
             activeConnections[idx2].ttsChannel = interaction.channelId;
@@ -318,17 +348,14 @@ client.on("interactionCreate", async (interaction) => {
               activeConnections[activeConnections.length - 1].player,
             );
 
-            // response += " - Joining voice!";
-
             activeConnections[idx2].soundboard = [];
           } catch (error) {
-            response = error.message;
             console.error(error);
           }
           // interaction.reply({ content: 'Hello!', ephemeral: false });
           interaction.reply({ content: 'Voice Connection Ready', ephemeral: true });
         } else {
-          response = "Join a voice channel and then try again!";
+          interaction.reply({ content: 'Join a voice channel and then try again!', ephemeral: true });
         }
         break;
 
@@ -336,16 +363,16 @@ client.on("interactionCreate", async (interaction) => {
         if (activeConnections.length > 0) {
           for (let i = 0; i < activeConnections.length; i++) {
             if (activeConnections[i].guildId === interaction.member.guild.id) {
-              response = "Goodbye!";
+              interaction.reply({ content: 'Goodbye!' });
               activeConnections[i].connection.destroy();
               activeConnections.splice(i, 1);
               break;
             } else {
-              response = "Not currently connected to voice.";
+              interaction.reply({ content: 'Not currently connected to voice.' });
             }
           }
         } else {
-          response = "Not currently connected to voice.";
+          interaction.reply({ content: 'Not currently connected to voice.' });
         }
         break;
 
@@ -445,40 +472,116 @@ client.on("interactionCreate", async (interaction) => {
 
         interaction.reply({ content: 'Sending you the soundboard via Direct Message', ephemeral: true });
 
-        activeConnections[idx].soundboard[userID] = await interaction.user.send({ embeds: [soundboardcard], fetchReply: true });
-        await activeConnections[idx].soundboard[userID].react('🕔')
-        .then(activeConnections[idx].soundboard[userID].react('🌼'))
-        .then(activeConnections[idx].soundboard[userID].react('🚂'))
-        .then(activeConnections[idx].soundboard[userID].react('🍪'))
-        .then(activeConnections[idx].soundboard[userID].react('👍'))
-        .then(activeConnections[idx].soundboard[userID].react('🥁'))
-        .then(activeConnections[idx].soundboard[userID].react('💩'))
-        .then(activeConnections[idx].soundboard[userID].react('😂'))
-        .then(activeConnections[idx].soundboard[userID].react('🤑'))
-        .then(activeConnections[idx].soundboard[userID].react('📯'))
-        .then(activeConnections[idx].soundboard[userID].react('🐍'))
-        .then(activeConnections[idx].soundboard[userID].react('🐸'))
-        .then(activeConnections[idx].soundboard[userID].react('💯'))
-        .then(activeConnections[idx].soundboard[userID].react('💵'))
-        .then(activeConnections[idx].soundboard[userID].react('🐕'))
-        .then(activeConnections[idx].soundboard[userID].react('📈'));
-        filter = (reaction, user) => { return user.id != '941537585170382928' && user.id != '941542196337844245'; };
-        collector = activeConnections[idx].soundboard[userID].createReactionCollector({ filter, time: 86_400_000 });
-        collector.on('collect', (reaction, user) => {
-          // console.log(`Collected ${reaction.emoji.name} from ${user.id} to play in ${interaction.member?.voice.channel}`);
+        sb1obj = await interaction.user.send({ embeds: [sb], fetchReply: true });
+        await sb1obj.react('🏟')
+        .then(sb1obj.react('💍'))
+        .then(sb1obj.react('😭'))
+        .then(sb1obj.react('🤫'))
+        .then(sb1obj.react('🤨'))
+        .then(sb1obj.react('📯'))
+        .then(sb1obj.react('🏆'))
+        .then(sb1obj.react('🏛'))
+        .then(sb1obj.react('🎲'))
+        .then(sb1obj.react('😜'))
+        .then(sb1obj.react('💰'))
+        .then(sb1obj.react('🤡'))
+        .then(sb1obj.react('🙅‍♂️'))
+        .then(sb1obj.react('💩'))
+        .then(sb1obj.react('🎮'))
+        .then(sb1obj.react('🛸'))
+        .then(sb1obj.react('🍋'))
+        .then(sb1obj.react('🏃‍♂️'))
+        .then(sb1obj.react('✨'))
+        .then(sb1obj.react('💀'));
 
-          const pathguide = soundboardOptions[reaction.emoji.name];
-          if (!pathguide) {
-            interaction.user.send({ content: `${reaction.emoji.name} isn't a currently supported choice.` });
-          } else {
-            activeConnections[idx].queue.push({
-              id: interaction.guildId,
-              path: 'audio/soundboard/' + pathguide + '.mp3',
-              message: pathguide,
-              soundboard: true,
-            });
-          }
+        sb2obj = await interaction.user.send({ content: '-', fetchReply: true });
+        await sb2obj.react('🧙‍♂️')
+        .then(sb2obj.react('😇'))
+        .then(sb2obj.react('🐛'))
+        .then(sb2obj.react('🤢'))
+        .then(sb2obj.react('🤗'))
+        .then(sb2obj.react('🙁'))
+        .then(sb2obj.react('👪'))
+        .then(sb2obj.react('🤦‍♂️'))
+        .then(sb2obj.react('😲'))
+        .then(sb2obj.react('👈'))
+        .then(sb2obj.react('😓'))
+        .then(sb2obj.react('🧠'))
+        .then(sb2obj.react('🎨'))
+        .then(sb2obj.react('🥇'))
+        .then(sb2obj.react('💪'))
+        .then(sb2obj.react('😡'))
+        .then(sb2obj.react('🍪'))
+        .then(sb2obj.react('🙄'))
+        .then(sb2obj.react('🤖'))
+        .then(sb2obj.react('🚁'));
+
+        // sb3obj = await interaction.user.send({ content: '-', fetchReply: true });
+        // await sb3obj.react('🕔')
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('👍'))
+        // .then(sb3obj.react('🍪'))
+        // .then(sb3obj.react('😎'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🚁'))
+        // .then(sb3obj.react('🐕'));
+
+        // sb4obj = await interaction.user.send({ content: '-', fetchReply: true });
+        // await sb4obj.react('😨')
+        // .then(sb4obj.react('🍉'))
+        // .then(sb4obj.react('🎨'))
+        // .then(sb4obj.react('💵'))
+        // .then(sb4obj.react('😏'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('🙀'))
+        // .then(sb4obj.react('😒'))
+        // .then(sb4obj.react('🎶'))
+        // .then(sb4obj.react('🤗'))
+        // .then(sb4obj.react('👽'))
+        // .then(sb4obj.react('🙄'));
+
+        filter = (reaction, user) => { return user.id != '941537585170382928' && user.id != '941542196337844245'; };
+
+        collector1 = sb1obj.createReactionCollector({ filter, time: 86_400_000 });
+        collector1.on('collect', (reaction, user) => {
+          queueSoundboard(reaction, interaction, idx);
         });
+
+        collector2 = sb2obj.createReactionCollector({ filter, time: 86_400_000 });
+        collector2.on('collect', (reaction, user) => {
+          queueSoundboard(reaction, interaction, idx);
+        });
+
+        // collector3 = sb3obj.createReactionCollector({ filter, time: 86_400_000 });
+        // collector3.on('collect', (reaction, user) => {
+        //   queueSoundboard(reaction, interaction, idx);
+        // });
+
+        // collector4 = sb4obj.createReactionCollector({ filter, time: 86_400_000 });
+        // collector4.on('collect', (reaction, user) => {
+        //   queueSoundboard(reaction, interaction, idx);
+        // });
+
         break;
 
       case 'help':
@@ -486,12 +589,8 @@ client.on("interactionCreate", async (interaction) => {
         break;
 
       default:
-        response = { content: "Command not currently supported", ephemeral: true };
+        interaction.reply({ content: "Command not currently supported", ephemeral: true });
         break;
-    }
-
-    if (response !== "") {
-      await interaction.reply(response);
     }
   }
 });
@@ -502,14 +601,9 @@ client.on("interactionCreate", async (interaction) => {
 //    | |     | |  \___ \    / /\ \ / __| __| |/ _ \| '_ \
 //    | |     | |  ____) |  / ____ \ (__| |_| | (_) | | | |
 //    |_|     |_| |_____/  /_/    \_\___|\__|_|\___/|_| |_|
-// Let's create a queue!
 
 client.login(process.env.token);
 setInterval(playQueue, 1);
-
-client.on("messageReactionAdd", async (messageReaction) => {
-  // console.log(messageReaction);
-});
 
 client.on("messageCreate", async (message) => {
   // console.log(message);
