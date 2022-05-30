@@ -194,7 +194,7 @@ const soundboardOptions = {
   '💩': 'onebigpile',
   '🎮': 'gameover',
   '🛸': 'beammeup',
-  '🍋': 'gottapee',
+  '💦': 'gottapee',
   '🏃‍♂️': 'forrestrun',
   '✨': 'legendary',
   '💀': 'liveandletdie',
@@ -217,7 +217,36 @@ const soundboardOptions = {
   '🍪': 'cookies',
   '🙄': 'rickroll',
   '🤖': 'illbeback',
-  '🚁': 'chopper',
+  '🚁': 'choppa',
+  '🥵': 'dineinhell',
+  '🤐': 'shutup',
+  '🍻': 'settlethis',
+  '🤦‍♀️': 'retarded',
+  '👎': 'finishhim',
+  '😬': 'disverybad',
+  '😅': 'disembarrassing',
+  '🙋‍♀️': 'hellothere',
+  '🤥': 'liar',
+  '👩‍🎓': 'muchtolearn',
+  '🕒': 'waitingforyou',
+  '⚰': 'joinordie',
+  '😈': 'ihaveyounow',
+  '😠': 'lackoffaith',
+  '🦸‍♂️': 'heroesneverdie',
+  '🌿': 'halflingsleaf',
+  '💎': 'musthaveprecious',
+  '🙏': 'blessyouladdie',
+  '🎯': 'gotyouinmysights',
+  '👌': 'ok',
+  '🤷‍♀️': 'what',
+  '😏': 'nopressure',
+  '🍋': 'lemonsqueezy',
+  '🤝': 'newbff',
+  '😵': 'someonesgonnadie',
+  '🤩': 'thisbadass',
+  '⚒': 'workwork',
+  '👍': 'icandothat',
+  '👛': 'needmoregold',
 };
 
 function queueSoundboard(reaction, interaction, idx) {
@@ -489,7 +518,7 @@ client.on("interactionCreate", async (interaction) => {
         .then(sb1obj.react('💩'))
         .then(sb1obj.react('🎮'))
         .then(sb1obj.react('🛸'))
-        .then(sb1obj.react('🍋'))
+        .then(sb1obj.react('💦'))
         .then(sb1obj.react('🏃‍♂️'))
         .then(sb1obj.react('✨'))
         .then(sb1obj.react('💀'));
@@ -516,38 +545,38 @@ client.on("interactionCreate", async (interaction) => {
         .then(sb2obj.react('🤖'))
         .then(sb2obj.react('🚁'));
 
-        // sb3obj = await interaction.user.send({ content: '-', fetchReply: true });
-        // await sb3obj.react('🕔')
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('👍'))
-        // .then(sb3obj.react('🍪'))
-        // .then(sb3obj.react('😎'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🚁'))
-        // .then(sb3obj.react('🐕'));
+        sb3obj = await interaction.user.send({ content: '-', fetchReply: true });
+        await sb3obj.react('🥵')
+        .then(sb3obj.react('🤐'))
+        .then(sb3obj.react('🍻'))
+        .then(sb3obj.react('🤦‍♀️'))
+        .then(sb3obj.react('👎'))
+        .then(sb3obj.react('😬'))
+        .then(sb3obj.react('😅'))
+        .then(sb3obj.react('🙋‍♀️'))
+        .then(sb3obj.react('🤥'))
+        .then(sb3obj.react('👩‍🎓'))
+        .then(sb3obj.react('🕒'))
+        .then(sb3obj.react('⚰'))
+        .then(sb3obj.react('😈'))
+        .then(sb3obj.react('😠'))
+        .then(sb3obj.react('🦸‍♂️'))
+        .then(sb3obj.react('🌿'))
+        .then(sb3obj.react('💎'))
+        .then(sb3obj.react('🙏'))
+        .then(sb3obj.react('🎯'))
+        .then(sb3obj.react('👛'));
 
-        // sb4obj = await interaction.user.send({ content: '-', fetchReply: true });
-        // await sb4obj.react('😨')
-        // .then(sb4obj.react('🍉'))
-        // .then(sb4obj.react('🎨'))
-        // .then(sb4obj.react('💵'))
-        // .then(sb4obj.react('😏'))
-        // .then(sb4obj.react('🙀'))
-        // .then(sb4obj.react('🙀'))
-        // .then(sb4obj.react('🙀'))
-        // .then(sb4obj.react('🙀'))
+        sb4obj = await interaction.user.send({ content: '-', fetchReply: true });
+        await sb4obj.react('👌')
+        .then(sb4obj.react('🤷‍♀️'))
+        .then(sb4obj.react('😏'))
+        .then(sb4obj.react('🍋'))
+        .then(sb4obj.react('🤝'))
+        .then(sb4obj.react('😵'))
+        .then(sb4obj.react('🤩'))
+        .then(sb4obj.react('⚒'))
+        .then(sb4obj.react('👍'));
         // .then(sb4obj.react('🙀'))
         // .then(sb4obj.react('🙀'))
         // .then(sb4obj.react('🙀'))
@@ -572,15 +601,15 @@ client.on("interactionCreate", async (interaction) => {
           queueSoundboard(reaction, interaction, idx);
         });
 
-        // collector3 = sb3obj.createReactionCollector({ filter, time: 86_400_000 });
-        // collector3.on('collect', (reaction, user) => {
-        //   queueSoundboard(reaction, interaction, idx);
-        // });
+        collector3 = sb3obj.createReactionCollector({ filter, time: 86_400_000 });
+        collector3.on('collect', (reaction, user) => {
+          queueSoundboard(reaction, interaction, idx);
+        });
 
-        // collector4 = sb4obj.createReactionCollector({ filter, time: 86_400_000 });
-        // collector4.on('collect', (reaction, user) => {
-        //   queueSoundboard(reaction, interaction, idx);
-        // });
+        collector4 = sb4obj.createReactionCollector({ filter, time: 86_400_000 });
+        collector4.on('collect', (reaction, user) => {
+          queueSoundboard(reaction, interaction, idx);
+        });
 
         break;
 
