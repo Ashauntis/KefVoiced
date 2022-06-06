@@ -22,6 +22,8 @@ const {
 } = require("@discordjs/voice");
 const { SlashCommandRoleOption } = require("@discordjs/builders");
 
+// const { createDiscordJSAdapter } = require('./adapter');
+
 // extend the String class to add a replace method
 String.prototype.replaceAt = function(index, replacement) {
   return (
@@ -125,13 +127,13 @@ async function load_document(id) {
 
   console.log("Loading document with id: " + id);
   // get the document from Amazon DynamoDB
-  await dynamo.getItem(params, function (err, data) {
+  await dynamo.getItem(params, function(err, data) {
       if (err) {
         console.log(err, err.stack);
       } else if (Object.keys(data).length == 0) {
         // console.log("No document found with id: " + id);
       } else {
-        console.dir(data);
+        // console.dir(data);
         result_data = JSON.parse(data.Item.value.S);
       }
     })
@@ -161,7 +163,7 @@ async function save_document(data_object, id) {
 
   // store the document in Amazon DynamoDB
   const r = await dynamo
-    .putItem(params, function (err) {
+    .putItem(params, function(err) {
       if (err) {
         console.log("Error", err, err.stack);
       } else {
@@ -177,6 +179,7 @@ async function save_document(data_object, id) {
 let cached_user_data = [];
 let cached_guild_data = [];
 let activeConnections = [];
+let reconnectionList = [];
 const soundboardOptions = {
   '🏟': 'entertained',
   '💍': 'myprecious',
@@ -247,7 +250,54 @@ const soundboardOptions = {
   '⚒': 'workwork',
   '👍': 'icandothat',
   '👛': 'needmoregold',
+  '🐕': 'sonofabitch',
 };
+
+async function reconnectVoice() {
+  try {
+    reconnectionList = await load_document('reconnection');
+
+    // Gaurante reconnectionList is an array, otherwise revert it to an empty array
+    if (!Array.isArray(reconnectionList)) {
+      reconnectionList = [];
+      return;
+    }
+
+    if (reconnectionList.length > 0) {
+      reconnectionList.forEach(async (connection) => {
+        const channel = client.channels.cache.get(connection.channelId);
+        if (!channel) return console.error("The channel does not exist!");
+        // console.log(channel);
+
+
+        // create a new voice connection
+        activeConnections.push(new VoiceConnection());
+        const i = activeConnections.length - 1;
+
+        // channel.join();
+        // activeConnections[i].connection =
+
+        activeConnections[i].connection = await joinVoiceChannel({
+          channelId: connection.channelId,
+          guildId: connection.guildId,
+          adapterCreator: channel.guild.voiceAdapterCreator,
+        });
+
+        activeConnections[i].channelId = connection.channelId;
+        activeConnections[i].guildId = connection.guildId;
+        activeConnections[i].ttsChannel = connection.ttsChannel;
+
+        activeConnections[i].connection.subscribe(
+          activeConnections[activeConnections.length - 1].player,
+        );
+        activeConnections[i].ttsChannel = connection.ttsChannel;
+        activeConnections[i].soundboard = [];
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 function queueSoundboard(reaction, interaction, idx) {
   const pathguide = soundboardOptions[reaction.emoji.name];
@@ -279,7 +329,10 @@ const client = new Client({
 // When the client is ready, run this code (only once)
 client.once("ready", () => {
   console.log("Ready!");
+  reconnectVoice();
 });
+
+
 
 //  _____  _           _        _____                                          _
 // / ____ | |         | |      / ____                                         | |
@@ -355,6 +408,15 @@ client.on("interactionCreate", async (interaction) => {
             activeConnections[idx2].guildId = voicechannel.guild.id;
             activeConnections[idx2].ttsChannel = interaction.channelId;
 
+            reconnectionList.push({
+                channelId: voicechannel.id,
+                guildId: voicechannel.guild.id,
+                adapterCreator: voicechannel.guild.voiceAdapterCreator,
+                ttsChannel: interaction.channelId,
+              });
+
+            save_document(reconnectionList, 'reconnection');
+
             activeConnections[idx2].connection.on(
               "stateChange",
               (oldState, newState) => {
@@ -390,16 +452,31 @@ client.on("interactionCreate", async (interaction) => {
 
       case "leave":
         if (activeConnections.length > 0) {
+          console.log(activeConnections);
+          console.log(reconnectionList);
+          let match = false;
+
           for (let i = 0; i < activeConnections.length; i++) {
             if (activeConnections[i].guildId === interaction.member.guild.id) {
+              match = true;
               interaction.reply({ content: 'Goodbye!' });
               activeConnections[i].connection.destroy();
               activeConnections.splice(i, 1);
               break;
-            } else {
-              interaction.reply({ content: 'Not currently connected to voice.' });
             }
           }
+
+          if (!match) {
+            interaction.reply({ content: 'Not currently connected to voice.' });
+          }
+
+          for (let i = 0; i < reconnectionList.length; i++) {
+            if (reconnectionList[i].guildId === interaction.member.guild.id) {
+              reconnectionList.splice(i, 1);
+              save_document(reconnectionList, 'reconnection');
+            }
+          }
+
         } else {
           interaction.reply({ content: 'Not currently connected to voice.' });
         }
@@ -420,7 +497,7 @@ client.on("interactionCreate", async (interaction) => {
                   data.Voices[i].Name + " (" + data.Voices[i].Gender + "), ";
               } else {
                 response +=
-                  data.Voices[i].Name + " (" + data.Voices[i].Gender + "). ";
+                  'and ' + data.Voices[i].Name + " (" + data.Voices[i].Gender + "). ";
               }
             }
             interaction.reply({ content: response, ephemeral: true });
@@ -577,7 +654,7 @@ client.on("interactionCreate", async (interaction) => {
         .then(sb4obj.react('🤩'))
         .then(sb4obj.react('⚒'))
         .then(sb4obj.react('👍'));
-        // .then(sb4obj.react('🙀'))
+        .then(sb4obj.react('🐕'))
         // .then(sb4obj.react('🙀'))
         // .then(sb4obj.react('🙀'))
         // .then(sb4obj.react('🙀'))
@@ -635,7 +712,7 @@ client.login(process.env.token);
 setInterval(playQueue, 1);
 
 client.on("messageCreate", async (message) => {
-  // console.log(message);
+  console.log(message);
   // console.log(message.attachments.first().contentType);
 
   const userID = message.member.id;

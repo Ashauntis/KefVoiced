@@ -82,3 +82,12 @@
                     ]
                     
                     */
+
+<!-- reconnection array structure -->
+
+[
+  {
+    channelId: '954578428286369862',
+    guildId: '395142618939523073',
+    ttsChannel: '911011946579525693'
+  }
