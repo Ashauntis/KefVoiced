@@ -653,8 +653,8 @@ client.on("interactionCreate", async (interaction) => {
         .then(sb4obj.react('😵'))
         .then(sb4obj.react('🤩'))
         .then(sb4obj.react('⚒'))
-        .then(sb4obj.react('👍'));
-        .then(sb4obj.react('🐕'))
+        .then(sb4obj.react('👍'))
+        .then(sb4obj.react('🐕'));
         // .then(sb4obj.react('🙀'))
         // .then(sb4obj.react('🙀'))
         // .then(sb4obj.react('🙀'))
