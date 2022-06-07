@@ -22,7 +22,7 @@
 		"no-console": "off",
 		"no-empty-function": "warn",
 		"no-floating-decimal": "warn",
-		"no-inline-comments": "warn",
+		"no-inline-comments": "off",
 		"no-lonely-if": "warn",
 		"no-multi-spaces": "warn",
 		"no-multiple-empty-lines": ["warn", { "max": 2, "maxEOF": 1, "maxBOF": 0 }],
