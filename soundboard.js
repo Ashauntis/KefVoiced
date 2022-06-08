@@ -69,6 +69,20 @@ const soundboardOptions = {
     '👍': 'icandothat',
     '👛': 'needmoregold',
     '🐕': 'sonofabitch',
+    '👏': 'mostimpressive',
+    '🐂': 'bullshit',
+    '🔩': 'screwedup',
+    '🤓': 'veryugly',
+    '🐟': 'biggerfish',
+    '🎰': 'odds',
+    '🧙‍♀️': 'magictrick',
+    '🐭': 'itsatrap',
+    '🤬': 'hellno',
+    '🤯': 'blasphemous',
+    '💄': 'nicethings',
+    '↖': 'corner',
+    '🥴': 'offwithhishead',
+    '😘': 'hellobeautiful',
   };
 
 module.exports = {
