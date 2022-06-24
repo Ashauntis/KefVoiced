@@ -42,6 +42,7 @@ class VoiceConnection {
     this.voiceChannel = null;
     this.player = createAudioPlayer();
     this.playing = false;
+    this.paused = false;
     this.advance = false;
     this.lastSpeaker = null;
     this.queue = [];
@@ -141,7 +142,7 @@ function queueSoundboard(reaction, interaction, idx) {
 function playQueue() {
   for (let i = 0; i < activeConnections.length; i++) {
     if (activeConnections[i].playing) {
-      // console.log('playQueue: Audio is playing! Ignoring request to play queue.');
+      // player is playing
     } else if (activeConnections[i].queue.length == 0) {
       // console.log('playQueue: Queue is empty!');
     } else if (activeConnections[i].advance) {
@@ -154,7 +155,9 @@ function playQueue() {
           console.error(err);
         }
       }
+      console.log(activeConnections[i].queue);
       activeConnections[i].queue.shift();
+      console.log(activeConnections[i].queue);
     } else {
       console.log(
         "playQueue: Playing " + activeConnections[i].queue[0].message,
@@ -316,6 +319,16 @@ client.on("interactionCreate", async (interaction) => {
         } else {
           interaction.reply({ content: 'Not currently connected to voice.' });
         }
+        break;
+
+      case "skip":
+
+        if (activeConnections[idx].queue.length > 0) {
+          activeConnections[idx].playing = false;
+        }
+
+        interaction.reply({ content: 'Skipping' });
+
         break;
 
       case "listvoices":
