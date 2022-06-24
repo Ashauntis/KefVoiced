@@ -1,8 +1,4 @@
-Create user and guild profiles - need a database that will save this data;
-Add custom config information to said profiles.
-
-client.on(message) - check to see if message channel id matches the join channel ID 
-
-/voices slash command - list all supported voices
-
-timeout of 30 minutes?
+/skip command to advance queue
+fix /leave function - something is causing it to be added to reconnectionlist multiple times (or just not removing it) which borks reconnection by attempting to connect multiple times.
+set up a "not allowed to use the bot" role, maybe a slash command with a 30 min timeout?
+log in a channel who's using soundboard stuff and possibly channel joins/disconnects

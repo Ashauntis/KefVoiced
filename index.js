@@ -4,6 +4,7 @@
 require("dotenv").config();
 
 // load dependencies
+// const util = require('util');
 const fs = require("fs");
 const { join } = require("path");
 const { Client, Intents, MessageEmbed } = require("discord.js");
@@ -177,7 +178,9 @@ function playQueue() {
 
 // Create a new client instance
 const client = new Client({
+
   intents: [
+    Intents.FLAGS.DIRECT_MESSAGES,
     Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
     Intents.FLAGS.GUILD_MESSAGES,
     Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
@@ -185,6 +188,13 @@ const client = new Client({
     Intents.FLAGS.GUILD_VOICE_STATES,
     Intents.FLAGS.GUILDS,
   ],
+
+  partials: [
+    'MESSAGE',
+    'CHANNEL',
+    'REACTION',
+  ],
+
 });
 
 // When the client is ready, run this code (only once)
@@ -280,7 +290,6 @@ client.on("interactionCreate", async (interaction) => {
       case "leave":
         if (activeConnections.length > 0) {
           let match = false;
-
           for (let i = 0; i < activeConnections.length; i++) {
             if (activeConnections[i].guildId === interaction.member.guild.id) {
               match = true;
@@ -298,7 +307,7 @@ client.on("interactionCreate", async (interaction) => {
           } else {
             // if a match was found remove the match from the reconnection list as well
             for (let i = 0; i < reconnectionList.length; i++) {
-              if (reconnectionList[i].guildId === interaction.member.guild.id) {
+              if (reconnectionList[i].guild.id === interaction.member.guild.id) {
                 reconnectionList.splice(i, 1);
                 functions.save_document(reconnectionList, 'reconnection');
               }
@@ -440,11 +449,21 @@ client.on("interactionCreate", async (interaction) => {
 // Listen for messages for in the designated TTS channel to send to Polly
 client.on("messageCreate", async (message) => {
   // console.log(message);
+  // console.log(util.inspect(message, { showHidden: true, depth: 2, colors: true }));
 
-  const userID = message.member.id;
+  let userID = null;
   let voice = 'Joey'; // Default voice for users who haven't made a custom choice
   let idx = -1;
   let cached = false;
+  if (message.member) {
+    userID = message.member.id;
+  } else {
+    return;
+  }
+
+  if (message.channel.type === 'DM') {
+    console.log('DM check triggered');
+  }
 
   // check to see if bot is connected to voice in the server
   console.log("Looking for connection matching guild.id of " + message.channel.guild.id);
