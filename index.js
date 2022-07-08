@@ -29,7 +29,7 @@ let polly = require("./polly");
 // polly = polly.polly;
 
 // Extend string class to include a capitalize method
-String.prototype.capitalize = function() {
+String.prototype.capitalize = function () {
   return this.charAt(0).toUpperCase() + this.slice(1);
 };
 
@@ -68,7 +68,6 @@ class VoiceConnection {
 // Utility functions
 async function joinVoice(connection, channel, ttsChannel) {
   try {
-
     console.log("---Joining voice channel----");
     console.log("channelId:  " + connection.id);
     console.log("guildId:    " + connection.guild.id);
@@ -89,20 +88,20 @@ async function joinVoice(connection, channel, ttsChannel) {
     activeConnections[i].ttsChannel = ttsChannel;
 
     activeConnections[i].connection.on(VoiceConnectionStatus.Ready, () => {
-      console.log(`Connection Ready to play audio in GuildID ${connection.guild.id}!`);
+      console.log(
+        `Connection Ready to play audio in GuildID ${connection.guild.id}!`
+      );
     });
 
     activeConnections[i].connection.subscribe(activeConnections[i].player);
   } catch (e) {
     console.error(e);
   }
-
 }
 
 async function reconnectVoice() {
   try {
-
-    reconnectionList = await functions.load_document('reconnection');
+    reconnectionList = await functions.load_document("reconnection");
 
     // Guarantee reconnectionList is an array, otherwise revert it to an empty array
     if (!Array.isArray(reconnectionList)) {
@@ -123,63 +122,80 @@ async function reconnectVoice() {
 }
 
 function queueSoundboard(reaction, interaction, idx) {
-
   const pathguide = soundboardOptions[reaction.emoji.name];
 
   if (!pathguide) {
-    interaction.user.send({ content: `${reaction.emoji.name} isn't a currently supported choice.` });
+    interaction.user.send({
+      content: `${reaction.emoji.name} isn't a currently supported sound key.`,
+    });
   } else {
     activeConnections[idx].queue.push({
       id: interaction.guildId,
-      path: 'audio/soundboard/' + pathguide + '.mp3',
+      path: "audio/soundboard/" + pathguide + ".mp3",
       message: pathguide,
       soundboard: true,
     });
   }
-
 }
 
 function playQueue() {
   for (let i = 0; i < activeConnections.length; i++) {
-    if (activeConnections[i].playing) {
-      // player is playing
-    } else if (activeConnections[i].queue.length == 0) {
-      // console.log('playQueue: Queue is empty!');
-    } else if (activeConnections[i].advance) {
-      // console.log('playQueue: Advancing the queue!');
-      activeConnections[i].advance = false;
-      if (activeConnections[i].queue[0].soundboard != true) {
+    // check if the player is not actively playing and the queue has items to play
+
+    if (
+      !activeConnections[i].playing &&
+      !activeConnections[i].queue.length == 0
+    ) {
+      if (activeConnections[i].advance) {
+        // console.log('playQueue: Advancing the queue!');
+        activeConnections[i].advance = false;
+
+        if (activeConnections[i].queue[0].soundboard != true) {
+          try {
+            fs.unlinkSync(activeConnections[i].queue[0].path);
+          } catch (err) {
+            console.error(err);
+          }
+        }
+        activeConnections[i].queue.shift();
+      } else {
         try {
-          fs.unlinkSync(activeConnections[i].queue[0].path);
-        } catch (err) {
-          console.error(err);
+          // check if audio file exists
+          if (fs.existsSync(activeConnections[i].queue[0].path)) {
+            console.log(
+              "playQueue: Playing " + activeConnections[i].queue[0].message
+            );
+
+            activeConnections[i].playing = true;
+            activeConnections[i].connection = getVoiceConnection(
+              activeConnections[i].queue[0].id
+            );
+
+            const audioFileHandle = createAudioResource(
+              fs.createReadStream(
+                join(__dirname, activeConnections[i].queue[0].path),
+                {
+                  inputType: StreamType.OggOpus,
+                }
+              )
+            );
+
+            activeConnections[i].player.play(audioFileHandle);
+          } else {
+            throw new Error("File does not exist!");
+          }
+        } catch (e) {
+          console.log("Error playing file");
+          console.error(e);
+          activeConnections[i].queue.shift();
         }
       }
-      activeConnections[i].queue.shift();
-    } else {
-      console.log(
-        "playQueue: Playing " + activeConnections[i].queue[0].message,
-      );
-      activeConnections[i].playing = true;
-      activeConnections[i].connection = getVoiceConnection(
-        activeConnections[i].queue[0].id,
-      );
-      const audioFileHandle = createAudioResource(
-        fs.createReadStream(
-          join(__dirname, activeConnections[i].queue[0].path),
-          {
-            inputType: StreamType.OggOpus,
-          },
-        ),
-      );
-      activeConnections[i].player.play(audioFileHandle);
     }
   }
 }
 
 // Create a new client instance
 const client = new Client({
-
   intents: [
     Intents.FLAGS.DIRECT_MESSAGES,
     Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
@@ -190,12 +206,7 @@ const client = new Client({
     Intents.FLAGS.GUILDS,
   ],
 
-  partials: [
-    'MESSAGE',
-    'CHANNEL',
-    'REACTION',
-  ],
-
+  partials: ["MESSAGE", "CHANNEL", "REACTION"],
 });
 
 // When the client is ready, run this code (only once)
@@ -217,7 +228,6 @@ let reconnectionList = [];
 // Listen for slash commands from the discord client.
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isCommand()) {
-
     // console.log(interaction);
     const { commandName } = interaction;
     const userID = interaction.member.id;
@@ -228,8 +238,8 @@ client.on("interactionCreate", async (interaction) => {
 
     for (let i = 0; i < cached_guild_data.length; i++) {
       if (cached_user_data[i].hasOwnProperty(guildID)) {
-          cached = true;
-          }
+        cached = true;
+      }
     }
 
     let response = "";
@@ -239,7 +249,9 @@ client.on("interactionCreate", async (interaction) => {
     let newSetting = null;
     let query = null;
 
-    let filter = (reaction, user) => { return user.id != '941537585170382928' && user.id != '941542196337844245'; };
+    let filter = (reaction, user) => {
+      return user.id != "941537585170382928" && user.id != "941542196337844245";
+    };
 
     let sbReactCounter = 0;
 
@@ -248,26 +260,34 @@ client.on("interactionCreate", async (interaction) => {
 
     // define soundboard embedded message
     const sb = new MessageEmbed()
-      .setTitle('Kef Voiced Soundboard')
-      .setDescription('The following emoji\'s will play a soundboard in the channel you performed the /soundboard command')
-      .addFields(
-        { name: 'Click here for the soundboard key', value: '[Click me!](https://docs.google.com/spreadsheets/d/1eYwxOGZScgQpLbsAtN5fP0WfLq9VT6jnxzj6-p5QPqE/edit#gid=0)', inline: true },
-        );
+      .setTitle("Kef Voiced Soundboard")
+      .setDescription(
+        "The following emoji's will play a soundboard in the channel you performed the /soundboard command"
+      )
+      .addFields({
+        name: "Click here for the soundboard key",
+        value:
+          "[Click me!](https://docs.google.com/spreadsheets/d/1eYwxOGZScgQpLbsAtN5fP0WfLq9VT6jnxzj6-p5QPqE/edit#gid=0)",
+        inline: true,
+      });
 
     // determine if a connection is present in the channel command was used
     for (let i = 0; i < activeConnections.length; i++) {
       if (activeConnections[i].guildId === interaction.guildId) {
         idx = i;
-        console.log('Matching active connection found for interaction');
+        console.log("Matching active connection found for interaction");
         break;
       }
     }
 
     switch (commandName) {
       case "join":
-
         if (idx != -1) {
-          interaction.reply({ content: 'There is already an established connection on this server. If you are trying to move channels, use /leave and try again.', ephemeral: true });
+          interaction.reply({
+            content:
+              "There is already an established connection on this server. If you are trying to move channels, use /leave and try again.",
+            ephemeral: true,
+          });
           // todo: add a way to move channels
           // todo: update the reconnection list with new channel info
           break;
@@ -278,21 +298,26 @@ client.on("interactionCreate", async (interaction) => {
             joinVoice(voicechannel, voicechannel, interaction.channelId);
 
             reconnectionList.push({
-                id: voicechannel.id,
-                guild: {
-                  id: voicechannel.guild.id,
-                },
-                ttsChannel: interaction.channelId,
-              });
+              id: voicechannel.id,
+              guild: {
+                id: voicechannel.guild.id,
+              },
+              ttsChannel: interaction.channelId,
+            });
 
-            functions.save_document(reconnectionList, 'reconnection');
-
+            functions.save_document(reconnectionList, "reconnection");
           } catch (error) {
             console.error(error);
           }
-          interaction.reply({ content: 'Kef Voiced has joined the channel', ephemeral: false });
+          interaction.reply({
+            content: "Kef Voiced has joined the channel",
+            ephemeral: false,
+          });
         } else {
-          interaction.reply({ content: 'Join a voice channel and then try again!', ephemeral: true });
+          interaction.reply({
+            content: "Join a voice channel and then try again!",
+            ephemeral: true,
+          });
         }
         break;
 
@@ -302,7 +327,7 @@ client.on("interactionCreate", async (interaction) => {
           for (let i = 0; i < activeConnections.length; i++) {
             if (activeConnections[i].guildId === interaction.member.guild.id) {
               match = true;
-              interaction.reply({ content: 'Goodbye!' });
+              interaction.reply({ content: "Goodbye!" });
               activeConnections[i].connection.destroy();
               activeConnections.splice(i, 1);
               break;
@@ -312,37 +337,36 @@ client.on("interactionCreate", async (interaction) => {
           // check if we found a match in the active connection list
           if (!match) {
             // if no match found notify the user
-            interaction.reply({ content: 'Not currently connected to voice.' });
+            interaction.reply({ content: "Not currently connected to voice." });
           } else {
             // if a match was found remove the match from the reconnection list as well
             for (let i = 0; i < reconnectionList.length; i++) {
-              if (reconnectionList[i].guild.id === interaction.member.guild.id) {
+              if (
+                reconnectionList[i].guild.id === interaction.member.guild.id
+              ) {
                 reconnectionList.splice(i, 1);
-                functions.save_document(reconnectionList, 'reconnection');
+                functions.save_document(reconnectionList, "reconnection");
               }
             }
           }
         } else {
-          interaction.reply({ content: 'Not currently connected to voice.' });
+          interaction.reply({ content: "Not currently connected to voice." });
         }
         break;
 
       case "skip":
-
         if (activeConnections[idx].queue.length > 0) {
           activeConnections[idx].playing = false;
         }
 
-        interaction.reply({ content: 'Skipping' });
+        interaction.reply({ content: "Skipping" });
 
         break;
 
       case "setlog":
-
         query = await functions.load_document(guildID);
 
         if (query) {
-
           query.log = interaction.channelId;
           newSetting = {
             [guildID]: query,
@@ -360,7 +384,6 @@ client.on("interactionCreate", async (interaction) => {
           if (!cached) {
             cached_guild_data.push(newSetting);
           }
-
         } else {
           newSetting = functions.makeDefaultGuildSettings(guildID);
           newSetting[guildID].log = interaction.channelId;
@@ -369,31 +392,40 @@ client.on("interactionCreate", async (interaction) => {
           console.log(`Saved new log channel for guildID ${guildID}`);
         }
 
-        interaction.reply({ content: 'This channel is now set to receive activity logs.' });
+        interaction.reply({
+          content: "This channel is now set to receive activity logs.",
+        });
 
         break;
 
       case "listvoices":
-        polly.polly.describeVoices({ LanguageCode: "en-US" }, function(err, data) {
-          if (err) {
-            console.log(err, err.stack);
-          } else {
-            response = "The currently supported voices include ";
-            for (let i = 0; i < data.Voices.length; i++) {
-              if (data.Voices[i].Name === 'Kevin') {
-                continue;
+        polly.polly.describeVoices(
+          { LanguageCode: "en-US" },
+          function (err, data) {
+            if (err) {
+              console.log(err, err.stack);
+            } else {
+              response = "The currently supported voices include ";
+              for (let i = 0; i < data.Voices.length; i++) {
+                if (data.Voices[i].Name === "Kevin") {
+                  continue;
+                }
+                if (i != data.Voices.length - 1) {
+                  response +=
+                    data.Voices[i].Name + " (" + data.Voices[i].Gender + "), ";
+                } else {
+                  response +=
+                    "and " +
+                    data.Voices[i].Name +
+                    " (" +
+                    data.Voices[i].Gender +
+                    "). ";
+                }
               }
-              if (i != data.Voices.length - 1) {
-                response +=
-                  data.Voices[i].Name + " (" + data.Voices[i].Gender + "), ";
-              } else {
-                response +=
-                  'and ' + data.Voices[i].Name + " (" + data.Voices[i].Gender + "). ";
-              }
+              interaction.reply({ content: response, ephemeral: true });
             }
-            interaction.reply({ content: response, ephemeral: true });
           }
-        });
+        );
         break;
 
       case "setvoice":
@@ -401,7 +433,7 @@ client.on("interactionCreate", async (interaction) => {
         // console.log("Choice input was " + choice);
         polly.polly.describeVoices(
           { LanguageCode: "en-US" },
-          async function(err, data) {
+          async function (err, data) {
             if (err) {
               console.log(err, err.stack);
             } else {
@@ -413,18 +445,20 @@ client.on("interactionCreate", async (interaction) => {
                   break;
                 }
               }
-              if (choice == 'Kevin') {
+              if (choice == "Kevin") {
                 validChoice = false;
               }
             }
 
             if (validChoice) {
-              interaction.reply({ content: `Setting your voice to ${choice}.`, ephemeral: true });
+              interaction.reply({
+                content: `Setting your voice to ${choice}.`,
+                ephemeral: true,
+              });
               // console.log(`Checking for existing setting for ${userID}`);
               query = await functions.load_document(userID);
 
               if (query) {
-
                 // console.log("Found existing setting");
                 query.global.voice = choice;
                 newSetting = {
@@ -443,7 +477,6 @@ client.on("interactionCreate", async (interaction) => {
                 if (!cached) {
                   cached_user_data.push(newSetting);
                 }
-
               } else {
                 newSetting = functions.makeDefaultSettings(userID);
                 newSetting[userID].global.voice = choice;
@@ -453,31 +486,51 @@ client.on("interactionCreate", async (interaction) => {
                 console.log(`Saved new voice setting for ${userID}`);
               }
             } else {
-              interaction.reply({ content: `${choice} is not a currently supported voice. You can use /listvoices to see the currently supported choices.`, ephemeral: true });
+              interaction.reply({
+                content: `${choice} is not a currently supported voice. You can use /listvoices to see the currently supported choices.`,
+                ephemeral: true,
+              });
             }
-          },
+          }
         );
         break;
 
-      case 'soundboard':
+      case "soundboard":
         if (idx == -1) {
-          interaction.reply({ content: 'Connect the bot to voice and try again!', ephemeral: true });
+          interaction.reply({
+            content: "Connect the bot to voice and try again!",
+            ephemeral: true,
+          });
           break;
         }
 
-        interaction.reply({ content: 'Sending you the soundboard via Direct Message', ephemeral: true });
+        interaction.reply({
+          content: "Sending you the soundboard via Direct Message",
+          ephemeral: true,
+        });
 
         await interaction.user.send({ embeds: [sb] });
 
         for (let key in soundboard.soundboardOptions) {
-
           if (sbReactCounter == 0) {
-            sbMessages.push(await interaction.user.send({ content: '-', fetchReply: true }));
-            collectorReactions.push(sbMessages[sbMessages.length - 1].createReactionCollector({ filter, time: 86_400_000 }));
-            collectorReactions[collectorReactions.length - 1].on('collect', (reaction, user) => {
-              queueSoundboard(reaction, interaction, idx);
-              ({ content: `${interaction.member.nickname} played a sound: ${reaction}` });
-            });
+            sbMessages.push(
+              await interaction.user.send({ content: "-", fetchReply: true })
+            );
+            collectorReactions.push(
+              sbMessages[sbMessages.length - 1].createReactionCollector({
+                filter,
+                time: 86_400_000,
+              })
+            );
+            collectorReactions[collectorReactions.length - 1].on(
+              "collect",
+              (reaction, user) => {
+                queueSoundboard(reaction, interaction, idx);
+                ({
+                  content: `${interaction.member.nickname} played a sound: ${reaction}`,
+                }); // todo
+              }
+            );
           }
 
           await sbMessages[sbMessages.length - 1].react(key);
@@ -491,12 +544,19 @@ client.on("interactionCreate", async (interaction) => {
 
         break;
 
-      case 'help':
-        interaction.reply({ content: 'Hello! If the bot is not reading your messages aloud, be sure that the bot is connected to a voice channel, and your messages are from the channel that the /join command was used from.', ephemeral: true });
+      case "help":
+        interaction.reply({
+          content:
+            "Hello! If the bot is not reading your messages aloud, be sure that the bot is connected to a voice channel, and your messages are from the channel that the /join command was used from.",
+          ephemeral: true,
+        });
         break;
 
       default:
-        interaction.reply({ content: "Command not currently supported", ephemeral: true });
+        interaction.reply({
+          content: "Command not currently supported",
+          ephemeral: true,
+        });
         break;
     }
   }
@@ -508,7 +568,7 @@ client.on("messageCreate", async (message) => {
   // console.log(util.inspect(message, { showHidden: true, depth: 2, colors: true }));
 
   let userID = null;
-  let voice = 'Joey'; // Default voice for users who haven't made a custom choice
+  let voice = "Joey"; // Default voice for users who haven't made a custom choice
   let idx = -1;
   let cached = false;
   if (message.member) {
@@ -518,20 +578,24 @@ client.on("messageCreate", async (message) => {
   }
 
   // Check to see if a message was ephemeral - skip if true
-  if (message.flags.has('EPHEMERAL')) {
-    console.log('skipping ephemeral message');
+  if (message.flags.has("EPHEMERAL")) {
+    console.log("skipping ephemeral message");
     return;
   }
 
-  if (message.channel.type === 'DM') {
-    console.log('DM check triggered');
+  if (message.channel.type === "DM") {
+    console.log("DM check triggered");
   }
 
   // check to see if bot is connected to voice in the server
-  console.log("Looking for connection matching guild.id of " + message.channel.guild.id);
+  console.log(
+    "Looking for connection matching guild.id of " + message.channel.guild.id
+  );
   for (let i = 0; i < activeConnections.length; i++) {
     if (activeConnections[i].guildId === message.channel.guild.id) {
-      console.log("Found active connection matching " + message.channel.guild.id);
+      console.log(
+        "Found active connection matching " + message.channel.guild.id
+      );
       idx = i;
       break;
     } else {
@@ -546,14 +610,16 @@ client.on("messageCreate", async (message) => {
 
   // check to see if message was in the same channel the bot was joined from
   if (activeConnections[idx].ttsChannel != message.channelId) {
-    console.log(`Not processing tts request as this message was not in the designated TTS channel. (Message content: ${message.content})`);
+    console.log(
+      `Not processing tts request as this message was not in the designated TTS channel. (Message content: ${message.content})`
+    );
     return;
   }
 
   // check to see if user has a cached voice setting
   for (let i = 0; i < cached_user_data.length; i++) {
     if (cached_user_data[i].hasOwnProperty(userID)) {
-        cached = true;
+      cached = true;
       if (cached_user_data[i][userID].global) {
         if (cached_user_data[i][userID].global.voice) {
           voice = cached_user_data[i][userID].global.voice;
@@ -576,7 +642,6 @@ client.on("messageCreate", async (message) => {
       cached_user_data.push(functions.makeEmptyCacheEntry(userID));
     }
   }
-
 
   // define who spoke last
   let author = message.member.nickname;
@@ -608,17 +673,19 @@ client.on("messageCreate", async (message) => {
   if (message.content.match(/<:[A-Za-z0-9_]{1,64}:\d{1,64}>/g)) {
     const custemoji = message.content.match(/<:[A-Za-z0-9]{1,64}:\d{1,64}>/g);
     custemoji.forEach((emoji) => {
-      const emojiname = emoji.split(':');
+      const emojiname = emoji.split(":");
       message.content = message.content.replaceAll(emoji, ` ${emojiname[1]} `);
     });
   }
 
   // filter animated emojis to emoji name with fpstag
   if (message.content.match(/<a:[0-9]{1,3}fps_[A-Za-z0-9_]{1,64}:\d{1,64}>/g)) {
-    const custemoji = message.content.match(/<a:[0-9]{1,3}fps_[A-Za-z0-9_]{1,64}:\d{1,64}>/g);
+    const custemoji = message.content.match(
+      /<a:[0-9]{1,3}fps_[A-Za-z0-9_]{1,64}:\d{1,64}>/g
+    );
     custemoji.forEach((emoji) => {
-      let emojiname = emoji.split(':');
-      emojiname = emojiname[1].slice(emojiname[1].indexOf('_') + 1);
+      let emojiname = emoji.split(":");
+      emojiname = emojiname[1].slice(emojiname[1].indexOf("_") + 1);
       message.content = message.content.replaceAll(emoji, ` ${emojiname} `);
     });
   }
@@ -627,16 +694,18 @@ client.on("messageCreate", async (message) => {
   if (message.content.match(/<a:[A-Za-z0-9_]{1,64}:\d{1,64}>/g)) {
     const custemoji = message.content.match(/<a:[A-Za-z0-9_]{1,64}:\d{1,64}>/g);
     custemoji.forEach((emoji) => {
-      let emojiname = emoji.split(':');
+      let emojiname = emoji.split(":");
       message.content = message.content.replaceAll(emoji, ` ${emojiname[1]} `);
     });
   }
 
   // filter for messages that only contain an image
-  if ((message.content === '') && (message.attachments.first().contentType.includes('image/'))) {
-    message.content = author + ' sent an image.';
+  if (
+    message.content === "" &&
+    message.attachments.first().contentType.includes("image/")
+  ) {
+    message.content = author + " sent an image.";
   }
-
 
   console.log("Preparing to connect to polly");
   // send the message to the Polly API
@@ -647,7 +716,7 @@ client.on("messageCreate", async (message) => {
     SampleRate: "24000",
   };
 
-  polly.polly.synthesizeSpeech(params, function(err, data) {
+  polly.polly.synthesizeSpeech(params, function (err, data) {
     if (activeConnections[idx].connection !== null) {
       const audioFile = "audio/" + message.id + ".ogg";
       fs.writeFile(audioFile, data.AudioStream, (err) => {
