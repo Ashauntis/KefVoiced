@@ -155,9 +155,7 @@ function playQueue() {
           console.error(err);
         }
       }
-      console.log(activeConnections[i].queue);
       activeConnections[i].queue.shift();
-      console.log(activeConnections[i].queue);
     } else {
       console.log(
         "playQueue: Playing " + activeConnections[i].queue[0].message,
@@ -223,15 +221,23 @@ client.on("interactionCreate", async (interaction) => {
     // console.log(interaction);
     const { commandName } = interaction;
     const userID = interaction.member.id;
-    const guildID = interaction.member.guildID;
+    const guildID = interaction.member.guild.id;
     const voicechannel = interaction.member?.voice.channel;
     let idx = -1;
+    let logchannel = null;
+
+    for (let i = 0; i < cached_guild_data.length; i++) {
+      if (cached_user_data[i].hasOwnProperty(guildID)) {
+          cached = true;
+          }
+    }
 
     let response = "";
     let choice = null;
     let validChoice = null;
     let cached = false;
     let newSetting = null;
+    let query = null;
 
     let filter = (reaction, user) => { return user.id != '941537585170382928' && user.id != '941542196337844245'; };
 
@@ -331,6 +337,42 @@ client.on("interactionCreate", async (interaction) => {
 
         break;
 
+      case "setlog":
+
+        query = await functions.load_document(guildID);
+
+        if (query) {
+
+          query.log = interaction.channelId;
+          newSetting = {
+            [guildID]: query,
+          };
+
+          for (let i = 0; i < cached_guild_data.length; i++) {
+            if (cached_guild_data[i].hasOwnProperty(guildID)) {
+              cached = true;
+              cached_guild_data.splice(i, 1, newSetting);
+              functions.save_document(query, guildID);
+              break;
+            }
+          }
+
+          if (!cached) {
+            cached_guild_data.push(newSetting);
+          }
+
+        } else {
+          newSetting = functions.makeDefaultGuildSettings(guildID);
+          newSetting[guildID].log = interaction.channelId;
+          cached_guild_data.push(newSetting);
+          functions.save_document(newSetting[guildID], guildID);
+          console.log(`Saved new log channel for guildID ${guildID}`);
+        }
+
+        interaction.reply({ content: 'This channel is now set to receive activity logs.' });
+
+        break;
+
       case "listvoices":
         polly.polly.describeVoices({ LanguageCode: "en-US" }, function(err, data) {
           if (err) {
@@ -379,7 +421,7 @@ client.on("interactionCreate", async (interaction) => {
             if (validChoice) {
               interaction.reply({ content: `Setting your voice to ${choice}.`, ephemeral: true });
               // console.log(`Checking for existing setting for ${userID}`);
-              const query = await functions.load_document(userID);
+              query = await functions.load_document(userID);
 
               if (query) {
 
@@ -434,6 +476,7 @@ client.on("interactionCreate", async (interaction) => {
             collectorReactions.push(sbMessages[sbMessages.length - 1].createReactionCollector({ filter, time: 86_400_000 }));
             collectorReactions[collectorReactions.length - 1].on('collect', (reaction, user) => {
               queueSoundboard(reaction, interaction, idx);
+              ({ content: `${interaction.member.nickname} played a sound: ${reaction}` });
             });
           }
 

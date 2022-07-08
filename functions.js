@@ -23,6 +23,14 @@ function makeDefaultSettings(userID) {
     };
   }
 
+function makeDefaultGuildSettings(guildID) {
+  return {
+    [guildID]: {
+      log: null,
+    },
+  };
+}
+
 function makeEmptyCacheEntry(userID) {
     return {
         [userID]: {
@@ -95,6 +103,7 @@ async function save_document(data_object, id) {
 
 module.exports = {
     makeDefaultSettings,
+    makeDefaultGuildSettings,
     makeEmptyCacheEntry,
     load_document,
     save_document,
