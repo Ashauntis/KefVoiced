@@ -1,5 +1,4 @@
 const soundboardOptions = {
-    '🚗': 'fakesound',
     '🏟': 'entertained',
     '💍': 'myprecious',
     '😭': 'nobodylikesyou',

@@ -262,7 +262,7 @@ client.on("interactionCreate", async (interaction) => {
     const sb = new MessageEmbed()
       .setTitle("Kef Voiced Soundboard")
       .setDescription(
-        "The following emoji's will play a soundboard in the channel you performed the /soundboard command"
+        "The following emoji's will play a soundboard in the channel you performed the /soundboard command",
       )
       .addFields({
         name: "Click here for the soundboard key",
