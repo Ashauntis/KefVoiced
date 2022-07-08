@@ -504,7 +504,7 @@ client.on("interactionCreate", async (interaction) => {
 
 // Listen for messages for in the designated TTS channel to send to Polly
 client.on("messageCreate", async (message) => {
-  // console.log(message);
+  // console.log(message.flags);
   // console.log(util.inspect(message, { showHidden: true, depth: 2, colors: true }));
 
   let userID = null;
@@ -514,6 +514,12 @@ client.on("messageCreate", async (message) => {
   if (message.member) {
     userID = message.member.id;
   } else {
+    return;
+  }
+
+  // Check to see if a message was ephemeral - skip if true
+  if (message.flags.has('EPHEMERAL')) {
+    console.log('skipping ephemeral message');
     return;
   }
 
